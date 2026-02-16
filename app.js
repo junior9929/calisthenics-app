@@ -201,18 +201,40 @@ function proposeLevelUps(program, progress, workout) {
 /* ---------- Swipe ---------- */
 function attachSwipe(el, onLeft, onRight) {
   let sx = 0, sy = 0, moved = false;
+
+  // Zone "safe" : si le swipe commence trop près du bord gauche,
+  // on ignore le swipe droite pour éviter le geste iOS "back".
+  const LEFT_EDGE_GUARD_PX = 24;
+
   el.addEventListener("touchstart", (e) => {
     const t = e.touches[0];
     sx = t.clientX; sy = t.clientY; moved = false;
   }, { passive: true });
-  el.addEventListener("touchmove", () => { moved = true; }, { passive: true });
+
+  el.addEventListener("touchmove", (e) => {
+    moved = true;
+  }, { passive: true });
+
   el.addEventListener("touchend", (e) => {
     if (!moved) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - sx;
     const dy = t.clientY - sy;
+
+    // besoin d'un vrai swipe horizontal
     if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
-    if (dx < 0) onLeft?.(); else onRight?.();
+
+    if (dx < 0) {
+      // swipe gauche = suivant
+      onLeft?.();
+    } else {
+      // swipe droite = précédent (mais seulement si on ne part pas du bord gauche)
+      if (sx < LEFT_EDGE_GUARD_PX) {
+        // On ignore pour ne pas déclencher le "back" iOS
+        return;
+      }
+      onRight?.();
+    }
   }, { passive: true });
 }
 
@@ -1310,4 +1332,5 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
