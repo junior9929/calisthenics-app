@@ -794,7 +794,6 @@ function renderWarmupPrompt({ next }) {
             <button class="primary" id="btnWarm">Commencer l’échauffement</button>
             <button class="ghost" id="btnSkip">Passer</button>
           </div>
-          <p class="hint">Tu swipes quand tu as fini une étape.</p>
         </div>
       </div>
     </div>
@@ -1205,7 +1204,6 @@ function ensureRestOverlay() {
         <button class="ghost" id="restHide">Masquer</button>
         <button class="danger" id="restSkip">Passer le repos</button>
       </div>
-      <div class="sub" style="margin-top:10px;">Swipe gauche pour passer • Swipe droite = exercice précédent</div>
     </div>
   `;
   document.body.appendChild(o);
@@ -2142,6 +2140,7 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
 
 
