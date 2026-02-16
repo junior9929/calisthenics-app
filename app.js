@@ -61,6 +61,29 @@ function isLevelAtOrAbove(fundamental, currentLevelId, thresholdLevelId) {
   return levelIndex(fundamental, currentLevelId) >= levelIndex(fundamental, thresholdLevelId);
 }
 
+/* ---------- Warmup helpers ---------- */
+function getWarmup(program, warmupId) {
+  return (program.warmups || []).find(w => w.id === warmupId) || null;
+}
+
+// Small default lists for warmup slot selection
+const WARMUP_SLOTS = {
+  pull: [
+    "Tractions australiennes",
+    "Row australien",
+    "Tractions élastique",
+    "Scapular pull-ups",
+    "Dead hang actif"
+  ],
+  push: [
+    "Pompes",
+    "Pompes inclinées",
+    "Pompes genoux",
+    "Dips assistés",
+    "Pike push-ups"
+  ]
+};
+
 /* ---------- Circuit generation (Phase 1) ---------- */
 function makeWorkoutItem(exId, exTitle, lvl, opts = {}) {
   const title = opts.titleOverride || `${exTitle} — ${lvl.title}`;
@@ -76,14 +99,18 @@ function makeWorkoutItem(exId, exTitle, lvl, opts = {}) {
   };
 }
 
-function getCircuitForPhase1(program, progress) {
+function getCircuitForPhase1(program, progress, selectedExerciseIds) {
   const phase = findPhase(program, progress.app.active_phase_id);
   if (!phase) throw new Error("Phase introuvable dans programme.json");
 
   const order = phase.fundamentals_order || ["pullups","pushups","pistols","plank","dips","lsit"];
+  const allow = new Set(selectedExerciseIds && selectedExerciseIds.length ? selectedExerciseIds : order);
+
   const items = [];
 
   for (const exId of order) {
+    if (!allow.has(exId)) continue;
+
     const f = findFundamental(phase, exId);
     if (!f) continue;
 
@@ -263,32 +290,40 @@ function formatValidate(type, validate) {
   return "Saisis ton résultat";
 }
 
-/* ---------- App state ---------- */
-let PROGRAM = null;
-let PROGRESS = null;
-
-function ensureProgressShape(p) {
-  p.schema_version ||= 1;
-  p.app ||= { active_program_id: "programme.json", active_phase_id: "phase1_bases" };
-  p.state ||= {};
-  p.tests ||= { initial_test: { performed_at: null, results: {} }, retests: [] };
-  if (!p.tests.retests) p.tests.retests = [];
-
-  p.last_workout ||= {
-    workout_id: null,
-    performed_at: null,
-    phase_id: p.app.active_phase_id,
-    warmup_ids: [],
-    session_rules: { rounds: 4, rest_between_exercises_sec: 60, rest_between_rounds_sec: 120 },
-    circuit_plan: { items: [] },
-    rounds: [],
-    completed: false
-  };
-  if (!p.workout_history) p.workout_history = [];
-  return p;
+/* ---------- History helpers (best round1) ---------- */
+function numericValueForBest(e) {
+  if (!e) return null;
+  const t = e.measure_type;
+  const en = e.entry || {};
+  if (t === "reps" || t === "negatives" || t === "hold_sec") return typeof en.value === "number" ? en.value : null;
+  if (t === "reps_each_side") {
+    const l = typeof en.left === "number" ? en.left : null;
+    const r = typeof en.right === "number" ? en.right : null;
+    if (l == null || r == null) return null;
+    return Math.min(l, r);
+  }
+  return null;
 }
 
-function render(html) { $("#root").innerHTML = html; }
+function bestRound1ForExercise(exId) {
+  let best = null;
+  for (const w of (PROGRESS.workout_history || [])) {
+    const r1 = w.rounds?.[0];
+    if (!r1) continue;
+    const matches = r1.entries.filter(x => x.exercise_id === exId);
+    if (!matches.length) continue;
+
+    // Prefer main entries for pullups and lsit
+    let pick = matches[0];
+    if (exId === "pullups") pick = matches.find(m => m.level_id !== "pullups_lvl1bis") || matches[0];
+    if (exId === "lsit") pick = matches.find(m => m.level_id !== "lsit_lvl2bis") || matches[0];
+
+    const val = numericValueForBest(pick);
+    if (val == null) continue;
+    if (!best || val > best.val) best = { val, measure_type: pick.measure_type };
+  }
+  return best;
+}
 
 /* ---------- Export / Import ---------- */
 function exportProgress() {
@@ -309,151 +344,107 @@ function importProgressFromFile(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => {
-      try {
-        const obj = JSON.parse(String(r.result || ""));
-        resolve(obj);
-      } catch (e) {
-        reject(new Error("Fichier JSON invalide"));
-      }
+      try { resolve(JSON.parse(String(r.result || ""))); }
+      catch { reject(new Error("Fichier JSON invalide")); }
     };
     r.onerror = () => reject(new Error("Impossible de lire le fichier"));
     r.readAsText(file);
   });
 }
 
-/* ---------- History helpers ---------- */
-function summarizeEntryForHistory(e) {
-  if (!e) return "—";
-  const t = e.measure_type;
-  const en = e.entry || {};
-  if (t === "reps" || t === "negatives") return `${en.value ?? "—"} reps`;
-  if (t === "hold_sec") return `${en.value ?? "—"} sec`;
-  if (t === "reps_each_side") return `G ${en.left ?? "—"} / D ${en.right ?? "—"}`;
-  return "—";
+/* ---------- App state ---------- */
+let PROGRAM = null;
+let PROGRESS = null;
+
+function ensureProgressShape(p) {
+  p.schema_version ||= 1;
+  p.app ||= { active_program_id: "programme.json", active_phase_id: "phase1_bases" };
+  p.state ||= {};
+  p.tests ||= { initial_test: { performed_at: null, results: {} }, retests: [] };
+  if (!p.tests.retests) p.tests.retests = [];
+
+  // Settings / defaults
+  p.settings ||= {
+    rest_between_exercises_sec: 60,
+    rest_between_rounds_sec: 120,
+    warmup_default_upper: "warmup_upper_5min",
+    warmup_default_lower: "warmup_lower_3min",
+    warmup_slot_choices: { pull: WARMUP_SLOTS.pull[0], push: WARMUP_SLOTS.push[0] },
+    last_session_setup: null
+  };
+
+  p.last_workout ||= {
+    workout_id: null,
+    performed_at: null,
+    phase_id: p.app.active_phase_id,
+    warmup_ids: [],
+    session_rules: { rounds: 4, rest_between_exercises_sec: 60, rest_between_rounds_sec: 120 },
+    circuit_plan: { items: [] },
+    rounds: [],
+    completed: false,
+    setup: null
+  };
+
+  if (!p.workout_history) p.workout_history = [];
+  return p;
 }
 
-function numericValueForSpark(e) {
-  if (!e) return null;
-  const t = e.measure_type;
-  const en = e.entry || {};
-  if (t === "reps" || t === "negatives" || t === "hold_sec") return typeof en.value === "number" ? en.value : null;
-  if (t === "reps_each_side") {
-    const l = typeof en.left === "number" ? en.left : null;
-    const r = typeof en.right === "number" ? en.right : null;
-    if (l == null || r == null) return null;
-    return Math.min(l, r); // conservative
-  }
-  return null;
+function render(html) { $("#root").innerHTML = html; }
+
+/* ---------- Session setup screen ---------- */
+function defaultSelectionForFocus(focus) {
+  // You can tweak defaults later; user can always check/uncheck.
+  if (focus === "pull") return ["pullups", "pistols", "plank", "lsit"];
+  if (focus === "push") return ["pushups", "pistols", "plank", "dips"];
+  return ["pullups","pushups","pistols","plank","dips","lsit"];
 }
 
-function buildSeriesForExercise(exId) {
-  const series = [];
-  for (const w of (PROGRESS.workout_history || [])) {
-    const r1 = w.rounds?.[0];
-    if (!r1) continue;
-    // prefer current level entry; else first entry for that exercise
-    const matches = r1.entries.filter(x => x.exercise_id === exId);
-    if (!matches.length) continue;
-
-    // pick non-aux when possible: for pullups, prefer non-hang; for lsit, prefer main (not 2bis)
-    let pick = matches[0];
-    if (exId === "pullups") {
-      pick = matches.find(m => m.level_id !== "pullups_lvl1bis") || matches[0];
-    } else if (exId === "lsit") {
-      pick = matches.find(m => m.level_id !== "lsit_lvl2bis") || matches[0];
-    }
-    const val = numericValueForSpark(pick);
-    if (val == null) continue;
-    series.push({ at: w.performed_at, val });
-  }
-  // reverse chronological history is stored with newest first; spark wants oldest->newest
-  return series.reverse();
-}
-
-function sparklineSVG(series) {
-  const w = 110, h = 34, pad = 4;
-  if (!series.length) {
-    return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"><path d="M${pad} ${h-pad} L${w-pad} ${h-pad}" stroke="rgba(255,255,255,.18)" fill="none" stroke-width="2"/></svg>`;
-  }
-  const vals = series.map(s => s.val);
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  const span = Math.max(1e-9, max - min);
-
-  const xStep = (w - pad*2) / Math.max(1, series.length - 1);
-  const pts = series.map((s, i) => {
-    const x = pad + i * xStep;
-    const y = (h - pad) - ((s.val - min) / span) * (h - pad*2);
-    return [x, y];
-  });
-
-  const d = pts.map((p, i) => `${i===0 ? "M" : "L"}${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(" ");
-  return `
-    <svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
-      <path d="${d}" stroke="rgba(94,234,212,.85)" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  `;
-}
-
-/* ---------- Screens ---------- */
-function dashboardCards() {
-  const phaseId = PROGRESS.app.active_phase_id;
-  const phase = findPhase(PROGRAM, phaseId);
+function renderSessionSetup({ mode }) {
+  const phase = findPhase(PROGRAM, PROGRESS.app.active_phase_id);
   const initialDone = !!safeGet(PROGRESS, "tests.initial_test.performed_at", null);
 
-  const itemsHtml = (phase.fundamentals_order || []).map(exId => {
+  const last = PROGRESS.settings.last_session_setup;
+  const focus = last?.focus || "all";
+  const selected = new Set(last?.selectedExercises || defaultSelectionForFocus(focus));
+
+  const exOptions = (phase.fundamentals_order || []).map(exId => {
     const f = findFundamental(phase, exId);
-    const current = safeGet(PROGRESS, `state.${exId}.current_level_id`, f?.levels?.[0]?.id);
-    const lvlLabel = (findLevel(f, current)?.title) || current || "—";
-
-    let lastR1 = "";
-    const lw = PROGRESS.last_workout;
-    if (lw?.rounds?.length) {
-      const r1 = lw.rounds[0];
-      const match = r1.entries.filter(e => e.exercise_id === exId);
-      if (match.length) {
-        const curMatch = match.find(m => m.level_id === current) || match[0];
-        lastR1 = summarizeEntryForHistory(curMatch);
-      }
-    }
-
+    const checked = selected.has(exId) ? "checked" : "";
     return `
-      <div class="item">
+      <label class="item" style="cursor:pointer;">
         <div class="left">
           <div class="name">${escapeHTML(f?.title ?? exId)}</div>
-          <div class="tiny muted">Niveau actuel : ${escapeHTML(lvlLabel)}</div>
-          ${lastR1 ? `<div class="tiny muted">Dernier tour 1 : ${escapeHTML(lastR1)}</div>` : `<div class="tiny muted">Dernier tour 1 : —</div>`}
+          <div class="tiny muted">Inclure dans la séance</div>
         </div>
-        <div class="badge ${initialDone ? "ok" : "warn"}">${initialDone ? "Prêt" : "Test requis"}</div>
-      </div>
+        <input type="checkbox" data-ex="${escapeAttr(exId)}" ${checked} />
+      </label>
     `;
   }).join("");
 
-  const lastWorkoutAt = PROGRESS.last_workout?.performed_at;
-  const lastWorkoutBadge = lastWorkoutAt ? `Dernière séance : ${new Date(lastWorkoutAt).toLocaleString()}` : "Aucune séance";
+  const warmUpper = PROGRESS.settings.warmup_default_upper;
+  const warmLower = PROGRESS.settings.warmup_default_lower;
 
-  return `
+  const pullChoice = PROGRESS.settings.warmup_slot_choices?.pull || WARMUP_SLOTS.pull[0];
+  const pushChoice = PROGRESS.settings.warmup_slot_choices?.push || WARMUP_SLOTS.push[0];
+
+  render(`
     <div class="grid">
       <div class="card">
         <div class="hd">
           <div class="h">
-            <div class="k">${escapeHTML(phase?.title ?? "Phase 1")}</div>
-            <div class="v">Tableau de bord</div>
+            <div class="k">Avant de commencer</div>
+            <div class="v">${mode === "test" ? "Test (avec échauffement)" : "Configurer la séance"}</div>
           </div>
-          <div class="pill">${escapeHTML(lastWorkoutBadge)}</div>
+          <div class="pill">Phase 1</div>
         </div>
         <div class="bd">
           <div class="btns">
-            <button class="primary" id="btnStart">${initialDone ? "Lancer une séance" : "Faire le test initial"}</button>
-            ${lastWorkoutAt && PROGRESS.last_workout?.completed === false ? `<button id="btnResume">Reprendre la séance</button>` : ""}
-            <button class="ghost" id="btnHistory">Historique</button>
-            ${initialDone ? `<button class="ghost" id="btnRetest">Refaire un test (option)</button>` : ""}
-            <button class="ghost" id="btnExport">Exporter</button>
-            <button class="ghost" id="btnImport">Importer</button>
-            <button class="danger" id="btnReset">Reset local (⚠️)</button>
+            <button class="ghost" id="btnBack">Retour</button>
+            <button class="primary" id="btnGo">${mode === "test" ? "Aller au test" : "Démarrer"}</button>
           </div>
           <p class="hint">
-            Données sauvegardées <b>localement</b> sur ton iPhone. Utilise <b>Exporter</b> pour faire un backup.
+            L’échauffement est proposé <b>avant</b> le test et avant la séance.
+            Repos par défaut: <b>60s</b> (tu peux passer le repos avec swipe/bouton).
           </p>
         </div>
       </div>
@@ -461,159 +452,227 @@ function dashboardCards() {
       <div class="card">
         <div class="hd">
           <div class="h">
-            <div class="k">Niveaux & suivi</div>
-            <div class="v">Tes fondamentaux</div>
+            <div class="k">Focus</div>
+            <div class="v">Pull / Push / Tout</div>
           </div>
-        </div>
-        <div class="bd">
-          <div class="list">${itemsHtml}</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderDashboard() {
-  render(dashboardCards());
-
-  const initialDone = !!safeGet(PROGRESS, "tests.initial_test.performed_at", null);
-
-  $("#btnStart").onclick = () => {
-    if (!initialDone) renderTestFlow({ mode: "initial" });
-    else startWorkout({ resume: false });
-  };
-
-  const btnResume = $("#btnResume");
-  if (btnResume) btnResume.onclick = () => startWorkout({ resume: true });
-
-  $("#btnHistory").onclick = () => renderHistory();
-
-  const btnRetest = $("#btnRetest");
-  if (btnRetest) btnRetest.onclick = () => renderTestFlow({ mode: "retest" });
-
-  $("#btnExport").onclick = () => exportProgress();
-
-  $("#btnImport").onclick = () => {
-    const input = $("#importFile");
-    input.value = "";
-    input.click();
-  };
-
-  $("#importFile").onchange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const obj = await importProgressFromFile(file);
-      const ok = confirm("Importer ce progress va remplacer tes données locales. Continuer ?");
-      if (!ok) return;
-
-      PROGRESS = ensureProgressShape(obj);
-      setProgress(PROGRESS);
-      toast("Import OK ✅");
-      renderDashboard();
-    } catch (err) {
-      toast(err.message || "Import impossible");
-    }
-  };
-
-  $("#btnReset").onclick = () => {
-    const ok = confirm("Supprimer toutes les données locales ? (Tu peux exporter avant)");
-    if (!ok) return;
-    localStorage.removeItem(LS_KEY);
-    toast("Reset OK. Recharge la page.");
-  };
-}
-
-/* ---------- History screen ---------- */
-function renderHistory() {
-  const phaseId = PROGRESS.app.active_phase_id;
-  const phase = findPhase(PROGRAM, phaseId);
-
-  const exRows = (phase.fundamentals_order || []).map(exId => {
-    const f = findFundamental(phase, exId);
-    const series = buildSeriesForExercise(exId);
-    const last = series.length ? series[series.length - 1].val : null;
-    const first = series.length ? series[0].val : null;
-    const delta = (last != null && first != null) ? (last - first) : null;
-
-    const deltaTxt = delta == null ? "—" : (delta === 0 ? "±0" : (delta > 0 ? `+${delta}` : `${delta}`));
-    const spark = sparklineSVG(series);
-
-    return `
-      <div class="item">
-        <div class="histRow">
-          <div class="left">
-            <div class="name">${escapeHTML(f?.title ?? exId)}</div>
-            <div class="tiny muted">Tour 1 • évolution: ${escapeHTML(deltaTxt)}</div>
-            <div class="tiny muted">Points: ${series.length}</div>
-          </div>
-          <div class="spark">${spark}</div>
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  const sessions = (PROGRESS.workout_history || []).slice(0, 12).map(w => {
-    const d = w.performed_at ? new Date(w.performed_at).toLocaleString() : "—";
-    const done = w.completed ? "✅" : "⏳";
-    return `
-      <div class="item">
-        <div class="left">
-          <div class="name">${done} ${escapeHTML(d)}</div>
-          <div class="tiny muted">Tours: ${w.session_rules?.rounds ?? "—"} • Items: ${w.circuit_plan?.items?.length ?? "—"}</div>
-        </div>
-        <div class="badge">Historique</div>
-      </div>
-    `;
-  }).join("");
-
-  render(`
-    <div class="grid">
-      <div class="card">
-        <div class="hd">
-          <div class="h">
-            <div class="k">Progression</div>
-            <div class="v">Historique & tendances</div>
-          </div>
-          <div class="pill">${escapeHTML((PROGRESS.workout_history || []).length + " séances")}</div>
         </div>
         <div class="bd">
           <div class="btns">
-            <button class="ghost" id="btnBack">Retour</button>
-            <button class="ghost" id="btnExport">Exporter</button>
+            <button class="${focus==="pull"?"primary":""}" id="focusPull">Pull</button>
+            <button class="${focus==="push"?"primary":""}" id="focusPush">Push</button>
+            <button class="${focus==="all"?"primary":""}" id="focusAll">Tout</button>
           </div>
-          <p class="hint">Sparklines basées sur le <b>tour 1</b> (quand tu es frais).</p>
+          <p class="hint">Le focus ne force rien : tu peux cocher/décocher les exercices ci-dessous.</p>
         </div>
       </div>
 
       <div class="card">
         <div class="hd">
           <div class="h">
-            <div class="k">Tour 1</div>
-            <div class="v">Par exercice</div>
+            <div class="k">Exercices</div>
+            <div class="v">Sélection</div>
           </div>
         </div>
         <div class="bd">
-          <div class="list">${exRows}</div>
+          <div class="list" id="exList">${exOptions}</div>
         </div>
       </div>
 
       <div class="card">
         <div class="hd">
           <div class="h">
-            <div class="k">Dernières séances</div>
-            <div class="v">Timeline</div>
+            <div class="k">Échauffement</div>
+            <div class="v">Slots Pull / Push</div>
           </div>
         </div>
         <div class="bd">
-          <div class="list">${sessions || `<div class="muted tiny">Aucune séance</div>`}</div>
+          <div class="field">
+            <label>Exercice Pull (échauffement haut du corps)</label>
+            <select id="slotPull">
+              ${WARMUP_SLOTS.pull.map(x => `<option ${x===pullChoice?"selected":""}>${escapeHTML(x)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field">
+            <label>Exercice Push (échauffement haut du corps)</label>
+            <select id="slotPush">
+              ${WARMUP_SLOTS.push.map(x => `<option ${x===pushChoice?"selected":""}>${escapeHTML(x)}</option>`).join("")}
+            </select>
+          </div>
+          <p class="hint">Ces choix seront mémorisés et réutilisés séance après séance.</p>
         </div>
       </div>
     </div>
   `);
 
   $("#btnBack").onclick = () => renderDashboard();
-  $("#btnExport").onclick = () => exportProgress();
+
+  const setFocusAndDefaults = (newFocus) => {
+    // set focus + auto defaults but keep user freedom afterwards
+    const defaults = defaultSelectionForFocus(newFocus);
+    const list = $("#exList");
+    for (const cb of list.querySelectorAll("input[type=checkbox][data-ex]")) {
+      cb.checked = defaults.includes(cb.getAttribute("data-ex"));
+    }
+    // re-render setup screen (simpler)
+    PROGRESS.settings.last_session_setup = {
+      focus: newFocus,
+      selectedExercises: defaults
+    };
+    setProgress(PROGRESS);
+    renderSessionSetup({ mode });
+  };
+
+  $("#focusPull").onclick = () => setFocusAndDefaults("pull");
+  $("#focusPush").onclick = () => setFocusAndDefaults("push");
+  $("#focusAll").onclick  = () => setFocusAndDefaults("all");
+
+  $("#btnGo").onclick = () => {
+    // collect selection
+    const selectedExercises = [];
+    for (const cb of $("#exList").querySelectorAll("input[type=checkbox][data-ex]")) {
+      if (cb.checked) selectedExercises.push(cb.getAttribute("data-ex"));
+    }
+    if (!selectedExercises.length) {
+      toast("Choisis au moins 1 exercice");
+      return;
+    }
+
+    // save warmup slot choices
+    PROGRESS.settings.warmup_slot_choices = {
+      pull: $("#slotPull").value,
+      push: $("#slotPush").value
+    };
+
+    const focusNow = PROGRESS.settings.last_session_setup?.focus || "all";
+    PROGRESS.settings.last_session_setup = { focus: focusNow, selectedExercises };
+
+    setProgress(PROGRESS);
+
+    // Warmup prompt first
+    renderWarmupPrompt({
+      next: () => {
+        if (mode === "test") {
+          renderTestFlow({ mode: initialDone ? "retest" : "initial" });
+        } else {
+          startWorkout({ resume: false, selectedExercises, setup: PROGRESS.settings.last_session_setup });
+        }
+      }
+    });
+  };
+}
+
+/* ---------- Warmup prompt + warmup runner ---------- */
+function renderWarmupPrompt({ next }) {
+  render(`
+    <div class="grid">
+      <div class="card">
+        <div class="hd">
+          <div class="h">
+            <div class="k">Avant de commencer</div>
+            <div class="v">Échauffement</div>
+          </div>
+          <div class="pill">Recommandé</div>
+        </div>
+        <div class="bd">
+          <div class="btns">
+            <button class="primary" id="btnWarm">Commencer par l’échauffement</button>
+            <button class="ghost" id="btnSkip">Passer</button>
+          </div>
+          <p class="hint">
+            L’échauffement haut du corps inclut un slot Pull/Push basé sur tes choix.
+          </p>
+        </div>
+      </div>
+    </div>
+  `);
+
+  $("#btnSkip").onclick = () => next?.();
+  $("#btnWarm").onclick = () => {
+    // Decide warmups: always offer upper, and lower if legs selected
+    const setup = PROGRESS.settings.last_session_setup;
+    const selected = new Set(setup?.selectedExercises || []);
+    const warmups = [];
+
+    // Upper if any pull/push/upper related selected
+    warmups.push(PROGRESS.settings.warmup_default_upper);
+
+    // Lower if pistols selected
+    if (selected.has("pistols")) warmups.push(PROGRESS.settings.warmup_default_lower);
+
+    runWarmups(warmups, () => next?.());
+  };
+}
+
+function runWarmups(warmupIds, onDone) {
+  const warmups = warmupIds.map(id => getWarmup(PROGRAM, id)).filter(Boolean);
+  const flatSteps = [];
+  for (const w of warmups) {
+    for (const s of (w.steps || [])) {
+      flatSteps.push({ warmup_id: w.id, warmup_title: w.title, step: s });
+    }
+  }
+
+  let idx = 0;
+
+  const renderStep = () => {
+    const cur = flatSteps[idx];
+    if (!cur) return onDone?.();
+
+    const s = cur.step;
+    const slotPull = PROGRESS.settings.warmup_slot_choices?.pull || WARMUP_SLOTS.pull[0];
+    const slotPush = PROGRESS.settings.warmup_slot_choices?.push || WARMUP_SLOTS.push[0];
+
+    let line = "";
+    if (s.type === "reps_both_directions") line = `${s.reps_min}-${s.reps_max} / sens`;
+    else if (s.type === "reps_each_side") line = `${s.reps_min}-${s.reps_max} / côté`;
+    else if (s.type === "reps_each_angle") line = `${s.reps} / angle`;
+    else if (s.type === "timer") line = `${s.duration_sec}s`;
+    else if (s.type === "exercise_slot") {
+      const chosen = s.slot === "pull" ? slotPull : slotPush;
+      line = `${chosen} — ${s.reps_min}-${s.reps_max} reps`;
+    } else line = "—";
+
+    render(`
+      <div class="grid">
+        <div class="card">
+          <div class="hd">
+            <div class="h">
+              <div class="k">${escapeHTML(cur.warmup_title)}</div>
+              <div class="v">Échauffement</div>
+            </div>
+            <div class="pill">${idx + 1}/${flatSteps.length}</div>
+          </div>
+          <div class="bd">
+            <div class="workoutCard" id="swipeArea">
+              <h2>${escapeHTML(s.title)}</h2>
+              <div class="sub">${escapeHTML(line)}</div>
+
+              <div class="meta">
+                <div class="chip">Swipe gauche: suivant</div>
+                <div class="chip">Swipe droite: précédent</div>
+              </div>
+
+              <div class="footerBar">
+                <button class="ghost" id="btnPrev">Précédent</button>
+                <button class="primary" id="btnNext">Suivant</button>
+                <button class="danger" id="btnDone">Terminer</button>
+              </div>
+
+              <div class="hint center">Objectif: max 5 min (haut) / 3 min (bas). Tu swipes quand tu as fini.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+
+    attachSwipe($("#swipeArea"), () => $("#btnNext")?.click(), () => $("#btnPrev")?.click());
+
+    $("#btnPrev").onclick = () => { if (idx > 0) { idx--; renderStep(); } else toast("Début échauffement"); };
+    $("#btnNext").onclick = () => { if (idx < flatSteps.length - 1) { idx++; renderStep(); } else onDone?.(); };
+    $("#btnDone").onclick = () => onDone?.();
+  };
+
+  renderStep();
 }
 
 /* ---------- Test flow ---------- */
@@ -631,7 +690,7 @@ function renderTestScreen(ctx) {
   const f = findFundamental(phase, exId);
   const level = f.levels[ctx.levelIdx];
 
-  const head = ctx.mode === "initial" ? "Test initial (requis)" : "Re-test (option)";
+  const head = ctx.mode === "initial" ? "Test initial" : "Re-test";
   const goal = formatValidate(level.type, level.validate);
 
   render(`
@@ -663,10 +722,7 @@ function renderTestScreen(ctx) {
               <button class="primary" id="btnPass">Objectif atteint</button>
             </div>
 
-            <div class="hint">
-              Swipe gauche = “Objectif atteint”, swipe droite = “Retour”.
-              <br/>“Je bloque ici” fixe ton niveau actuel et ta baseline.
-            </div>
+            <div class="hint">Swipe gauche = “Objectif atteint”, swipe droite = “Retour”.</div>
           </div>
         </div>
       </div>
@@ -691,7 +747,6 @@ function renderTestScreen(ctx) {
       ctx.levelIdx++;
       return renderTestScreen(ctx);
     }
-    // passed all levels -> lock last
     applyTestLockIn(exId, level, entry, note);
     return nextExerciseOrFinish(ctx);
   };
@@ -730,7 +785,6 @@ function applyTestLockIn(exId, levelLocked, baselineEntry, baselineNote) {
   PROGRESS.state[exId].notes = baselineNote || "";
   PROGRESS.state[exId].last_updated_at = nowISO();
 
-  // baseline structure
   if (exId === "pullups") {
     PROGRESS.state.pullups.baseline ||= {};
     if (levelLocked.id === "pullups_lvl1bis") {
@@ -751,21 +805,14 @@ function applyTestLockIn(exId, levelLocked, baselineEntry, baselineNote) {
   }
 }
 
-/* ---------- Workout flow + fallback helper ---------- */
+/* ---------- Fallback helper (C) ---------- */
 function isBelowFallbackThreshold(phase, item, entry) {
   const repsTh = phase.fallback_rules?.reps_threshold ?? 3;
   const holdTh = phase.fallback_rules?.hold_threshold_sec ?? 5;
 
-  if (item.measure_type === "reps" || item.measure_type === "negatives") {
-    return (entry?.value ?? 0) <= repsTh;
-  }
-  if (item.measure_type === "hold_sec") {
-    return (entry?.value ?? 0) <= holdTh;
-  }
-  // reps_each_side: trigger if either side <= repsTh
-  if (item.measure_type === "reps_each_side") {
-    return (entry?.left ?? 0) <= repsTh || (entry?.right ?? 0) <= repsTh;
-  }
+  if (item.measure_type === "reps" || item.measure_type === "negatives") return (entry?.value ?? 0) <= repsTh;
+  if (item.measure_type === "hold_sec") return (entry?.value ?? 0) <= holdTh;
+  if (item.measure_type === "reps_each_side") return (entry?.left ?? 0) <= repsTh || (entry?.right ?? 0) <= repsTh;
   return false;
 }
 
@@ -779,18 +826,53 @@ function suggestFallback(program, progress, item) {
   const prev = f.levels?.[Math.max(0, idx - 1)];
   if (!prev || prev.id === item.level_id) return null;
 
-  // Examples for readability
   if (item.exercise_id === "pullups" && item.level_id === "pullups_lvl4") return "2 tractions + 3 tractions négatives";
   if (item.exercise_id === "pullups" && item.level_id === "pullups_lvl3") return "2 tractions négatives + 5 tractions australiennes";
   return `Complément : ${prev.title}`;
 }
 
+/* ---------- Workout flow + rest skip + best display ---------- */
 let restInterval = null;
+let restRunning = false;
 
-function startWorkout({ resume }) {
+function runRestTimer(seconds, onDone) {
+  const el = $("#restHint");
+  if (!el) return onDone?.();
+
+  restRunning = true;
+  let t = seconds;
+  el.textContent = `Repos : ${t}s (swipe gauche pour passer)`;
+  clearInterval(restInterval);
+
+  restInterval = setInterval(() => {
+    t--;
+    if (t <= 0) {
+      clearInterval(restInterval);
+      restRunning = false;
+      el.textContent = "";
+      toast("Go !");
+      onDone?.();
+      return;
+    }
+    el.textContent = `Repos : ${t}s (swipe gauche pour passer)`;
+  }, 1000);
+}
+
+function stopRest(onDone) {
+  clearInterval(restInterval);
+  restRunning = false;
+  const el = $("#restHint");
+  if (el) el.textContent = "";
+  onDone?.();
+}
+
+function startWorkout({ resume, selectedExercises, setup }) {
   const phase = findPhase(PROGRAM, PROGRESS.app.active_phase_id);
   const initialDone = !!safeGet(PROGRESS, "tests.initial_test.performed_at", null);
-  if (!initialDone) return renderTestFlow({ mode: "initial" });
+  if (!initialDone) {
+    // propose warmup+test via setup screen
+    return renderSessionSetup({ mode: "test" });
+  }
 
   let workout = null;
 
@@ -798,7 +880,7 @@ function startWorkout({ resume }) {
     workout = deepClone(PROGRESS.last_workout);
     toast("Séance reprise");
   } else {
-    const plan = getCircuitForPhase1(PROGRAM, PROGRESS);
+    const plan = getCircuitForPhase1(PROGRAM, PROGRESS, selectedExercises);
     workout = {
       workout_id: `w-${Date.now()}`,
       performed_at: nowISO(),
@@ -806,37 +888,19 @@ function startWorkout({ resume }) {
       warmup_ids: [],
       session_rules: {
         rounds: phase.session_rules.rounds,
-        rest_between_exercises_sec: phase.session_rules.rest_between_exercises_sec.max,
-        rest_between_rounds_sec: phase.session_rules.rest_between_rounds_sec
+        rest_between_exercises_sec: PROGRESS.settings.rest_between_exercises_sec || 60,
+        rest_between_rounds_sec: PROGRESS.settings.rest_between_rounds_sec || 120
       },
       circuit_plan: plan,
       rounds: Array.from({ length: phase.session_rules.rounds }, () => ({ entries: [] })),
-      completed: false
+      completed: false,
+      setup: setup || PROGRESS.settings.last_session_setup || null
     };
     PROGRESS.last_workout = deepClone(workout);
     setProgress(PROGRESS);
   }
 
   renderWorkoutScreen(workout, { round: 0, idx: 0 });
-}
-
-function runRestTimer(seconds, onDone) {
-  const el = $("#restHint");
-  if (!el) return onDone?.();
-  let t = seconds;
-  el.textContent = `Repos : ${t}s`;
-  clearInterval(restInterval);
-  restInterval = setInterval(() => {
-    t--;
-    if (t <= 0) {
-      clearInterval(restInterval);
-      el.textContent = "";
-      toast("Go !");
-      onDone?.();
-      return;
-    }
-    el.textContent = `Repos : ${t}s`;
-  }, 1000);
 }
 
 function renderWorkoutScreen(workout, nav) {
@@ -852,6 +916,9 @@ function renderWorkoutScreen(workout, nav) {
   const roundObj = workout.rounds[nav.round];
   const already = roundObj.entries.find(x => x.item_id === item.item_id) || null;
 
+  const best = bestRound1ForExercise(item.exercise_id);
+  const bestLine = best ? `Meilleur tour 1: ${best.val}${best.measure_type === "hold_sec" ? "s" : ""}` : "Meilleur tour 1: —";
+
   render(`
     <div class="grid">
       <div class="card">
@@ -866,7 +933,7 @@ function renderWorkoutScreen(workout, nav) {
           <div class="workoutTop">
             <div class="progress"><div style="width:${pct}%"></div></div>
             <div class="row">
-              <div class="tiny muted">Repos exos : ${workout.session_rules.rest_between_exercises_sec}s • Repos tours : ${workout.session_rules.rest_between_rounds_sec}s</div>
+              <div class="tiny muted">Repos: ${workout.session_rules.rest_between_exercises_sec}s • Tours: ${workout.session_rules.rest_between_rounds_sec}s</div>
               <button class="ghost" id="btnDash">Dashboard</button>
             </div>
           </div>
@@ -877,6 +944,7 @@ function renderWorkoutScreen(workout, nav) {
 
             <div class="meta">
               <div class="chip">${escapeHTML(item.exercise_title)}</div>
+              <div class="chip">${escapeHTML(bestLine)}</div>
               <div class="chip">Swipe gauche: suivant</div>
               <div class="chip">Swipe droite: précédent</div>
             </div>
@@ -896,6 +964,7 @@ function renderWorkoutScreen(workout, nav) {
             <div class="footerBar">
               <button class="ghost" id="btnPrev">Précédent</button>
               <button class="primary" id="btnSave">Valider & Repos</button>
+              <button class="ghost" id="btnSkipRest">Passer le repos</button>
               <button class="danger" id="btnFinish">Terminer</button>
             </div>
 
@@ -916,11 +985,21 @@ function renderWorkoutScreen(workout, nav) {
     setProgress(PROGRESS);
     renderDashboard();
   };
+
   $("#btnPrev").onclick = () => goPrev(workout, nav);
   $("#btnFinish").onclick = () => finishWorkout(workout);
 
+  $("#btnSkipRest").onclick = () => {
+    if (!restRunning) return toast("Pas de repos en cours");
+    stopRest(() => goNext(workout, nav, { requireSaved: false }));
+  };
+
+  // Swipe left: if resting -> skip rest, else next (requires saved)
   attachSwipe($("#swipeArea"),
-    () => goNext(workout, nav, { requireSaved: true }),
+    () => {
+      if (restRunning) return $("#btnSkipRest")?.click();
+      return goNext(workout, nav, { requireSaved: true });
+    },
     () => goPrev(workout, nav)
   );
 
@@ -929,16 +1008,13 @@ function renderWorkoutScreen(workout, nav) {
     const fallback = ($("#fallback").value || "").trim();
     const note = ($("#note").value || "").trim();
 
-    // C) fallback helper: if below threshold and no fallback provided, propose one
     if (!fallback && isBelowFallbackThreshold(phase, item, entry)) {
       const suggestion = suggestFallback(PROGRAM, PROGRESS, item);
       const ok = confirm(
-        "Résultat très bas (seuil du livre). Voulais-tu compléter avec le niveau précédent ?\n" +
+        "Résultat très bas (seuil). Compléter avec le niveau précédent ?\n" +
         (suggestion ? `\nSuggestion: ${suggestion}` : "")
       );
-      if (ok) {
-        $("#fallback").value = suggestion || "Complément niveau précédent";
-      }
+      if (ok) $("#fallback").value = suggestion || "Complément niveau précédent";
     }
 
     const record = {
@@ -956,11 +1032,9 @@ function renderWorkoutScreen(workout, nav) {
     if (idx >= 0) roundObj.entries[idx] = record;
     else roundObj.entries.push(record);
 
-    // persist partial
     PROGRESS.last_workout = deepClone(workout);
     setProgress(PROGRESS);
 
-    // rest time selection
     const rest = (nav.idx === workout.circuit_plan.items.length - 1)
       ? workout.session_rules.rest_between_rounds_sec
       : workout.session_rules.rest_between_exercises_sec;
@@ -971,6 +1045,7 @@ function renderWorkoutScreen(workout, nav) {
 
 function goPrev(workout, nav) {
   clearInterval(restInterval);
+  restRunning = false;
 
   if (nav.idx > 0) { nav.idx--; return renderWorkoutScreen(workout, nav); }
   if (nav.round > 0) { nav.round--; nav.idx = workout.circuit_plan.items.length - 1; return renderWorkoutScreen(workout, nav); }
@@ -979,6 +1054,7 @@ function goPrev(workout, nav) {
 
 function goNext(workout, nav, { requireSaved }) {
   clearInterval(restInterval);
+  restRunning = false;
 
   if (requireSaved) {
     const item = workout.circuit_plan.items[nav.idx];
@@ -994,6 +1070,7 @@ function goNext(workout, nav, { requireSaved }) {
 
 function finishWorkout(workout) {
   clearInterval(restInterval);
+  restRunning = false;
 
   workout.completed = true;
   PROGRESS.workout_history.unshift(deepClone(workout));
@@ -1020,6 +1097,134 @@ function finishWorkout(workout) {
   renderDashboard();
 }
 
+/* ---------- Dashboard + replay same session (5) ---------- */
+function dashboardCards() {
+  const phaseId = PROGRESS.app.active_phase_id;
+  const phase = findPhase(PROGRAM, phaseId);
+  const initialDone = !!safeGet(PROGRESS, "tests.initial_test.performed_at", null);
+
+  const lastWorkoutAt = PROGRESS.last_workout?.performed_at;
+  const lastWorkoutBadge = lastWorkoutAt ? `Dernière séance : ${new Date(lastWorkoutAt).toLocaleString()}` : "Aucune séance";
+
+  const itemsHtml = (phase.fundamentals_order || []).map(exId => {
+    const f = findFundamental(phase, exId);
+    const current = safeGet(PROGRESS, `state.${exId}.current_level_id`, f?.levels?.[0]?.id);
+    const lvlLabel = (findLevel(f, current)?.title) || current || "—";
+    const best = bestRound1ForExercise(exId);
+    const bestTxt = best ? `${best.val}${best.measure_type==="hold_sec"?"s":""}` : "—";
+
+    return `
+      <div class="item">
+        <div class="left">
+          <div class="name">${escapeHTML(f?.title ?? exId)}</div>
+          <div class="tiny muted">Niveau : ${escapeHTML(lvlLabel)}</div>
+          <div class="tiny muted">Meilleur tour 1 : ${escapeHTML(bestTxt)}</div>
+        </div>
+        <div class="badge ${initialDone ? "ok" : "warn"}">${initialDone ? "Prêt" : "Test requis"}</div>
+      </div>
+    `;
+  }).join("");
+
+  const canReplay = !!(PROGRESS.last_workout?.completed && PROGRESS.last_workout?.circuit_plan?.items?.length);
+
+  return `
+    <div class="grid">
+      <div class="card">
+        <div class="hd">
+          <div class="h">
+            <div class="k">${escapeHTML(phase?.title ?? "Phase 1")}</div>
+            <div class="v">Tableau de bord</div>
+          </div>
+          <div class="pill">${escapeHTML(lastWorkoutBadge)}</div>
+        </div>
+        <div class="bd">
+          <div class="btns">
+            <button class="primary" id="btnStart">${initialDone ? "Configurer & lancer une séance" : "Configurer & faire le test initial"}</button>
+            ${PROGRESS.last_workout?.workout_id && !PROGRESS.last_workout.completed ? `<button id="btnResume">Reprendre la séance</button>` : ""}
+            <button class="ghost" id="btnTest">${initialDone ? "Configurer & refaire un test" : "Configurer & test initial"}</button>
+            <button class="ghost" id="btnReplay" ${canReplay ? "" : "disabled"}>Rejouer la même séance</button>
+            <button class="ghost" id="btnExport">Exporter</button>
+            <button class="ghost" id="btnImport">Importer</button>
+            <button class="danger" id="btnReset">Reset local (⚠️)</button>
+          </div>
+          <p class="hint">Tu peux choisir Pull/Push/Tout + cocher les exercices à inclure avant chaque séance.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <div class="h">
+            <div class="k">Niveaux & perfs</div>
+            <div class="v">Fondamentaux</div>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="list">${itemsHtml}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderDashboard() {
+  render(dashboardCards());
+
+  const initialDone = !!safeGet(PROGRESS, "tests.initial_test.performed_at", null);
+
+  $("#btnStart").onclick = () => {
+    // Setup then warmup then either test or workout
+    renderSessionSetup({ mode: initialDone ? "workout" : "test" });
+  };
+
+  const btnResume = $("#btnResume");
+  if (btnResume) btnResume.onclick = () => startWorkout({ resume: true });
+
+  $("#btnTest").onclick = () => {
+    renderSessionSetup({ mode: "test" });
+  };
+
+  $("#btnReplay").onclick = () => {
+    if (!(PROGRESS.last_workout?.completed && PROGRESS.last_workout?.circuit_plan?.items?.length)) return;
+    // New workout with same selected exercises, same plan logic = reuse setup selection if present
+    const setup = PROGRESS.last_workout.setup || PROGRESS.settings.last_session_setup || null;
+    const selected = setup?.selectedExercises || null;
+
+    renderWarmupPrompt({
+      next: () => startWorkout({ resume: false, selectedExercises: selected, setup })
+    });
+  };
+
+  $("#btnExport").onclick = () => exportProgress();
+  $("#btnImport").onclick = () => {
+    const input = $("#importFile");
+    input.value = "";
+    input.click();
+  };
+
+  $("#importFile").onchange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const obj = await importProgressFromFile(file);
+      const ok = confirm("Importer ce progress va remplacer tes données locales. Continuer ?");
+      if (!ok) return;
+      PROGRESS = ensureProgressShape(obj);
+      setProgress(PROGRESS);
+      toast("Import OK ✅");
+      renderDashboard();
+    } catch (err) {
+      toast(err.message || "Import impossible");
+    }
+  };
+
+  $("#btnReset").onclick = () => {
+    const ok = confirm("Supprimer toutes les données locales ? (Exporter avant si besoin)");
+    if (!ok) return;
+    localStorage.removeItem(LS_KEY);
+    toast("Reset OK. Recharge la page.");
+  };
+}
+
 /* ---------- Init ---------- */
 async function init() {
   PROGRAM = await loadJSON("./programme.json");
@@ -1029,7 +1234,7 @@ async function init() {
   PROGRESS = ensureProgressShape(p);
   setProgress(PROGRESS);
 
-  $("#subtitle").textContent = "Sauvegarde locale + Export/Import (backup)";
+  $("#subtitle").textContent = "Séance configurable + échauffement + repos skippable";
   renderDashboard();
 }
 
