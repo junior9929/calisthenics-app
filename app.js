@@ -463,6 +463,66 @@ function importProgressFromFile(file) {
   });
 }
 
+/* ---------- Workout summary helpers ---------- */
+
+function formatWhen(iso) {
+  try { return new Date(iso).toLocaleString(); } catch { return iso || "—"; }
+}
+
+function entryToDisplay(measure_type, entry) {
+  if (!entry) return "—";
+  if (measure_type === "reps" || measure_type === "negatives") return `${entry.value ?? 0} reps`;
+  if (measure_type === "hold_sec") return `${entry.value ?? 0}s`;
+  if (measure_type === "reps_each_side") return `${entry.left ?? 0}/${entry.right ?? 0}`;
+  return JSON.stringify(entry);
+}
+
+function entryToScore(measure_type, entry) {
+  // score numérique pour comparer les tours
+  if (!entry) return -Infinity;
+  if (measure_type === "reps" || measure_type === "negatives" || measure_type === "hold_sec") {
+    return typeof entry.value === "number" ? entry.value : -Infinity;
+  }
+  if (measure_type === "reps_each_side") {
+    const l = typeof entry.left === "number" ? entry.left : -Infinity;
+    const r = typeof entry.right === "number" ? entry.right : -Infinity;
+    return Math.min(l, r);
+  }
+  return -Infinity;
+}
+
+function computeWorkoutBestByExercise(workout) {
+  // Retourne: { exId: { bestScore, bestText, bestRoundIndex, bestLevelTitle } }
+  const out = {};
+
+  for (let r = 0; r < (workout.rounds?.length || 0); r++) {
+    const round = workout.rounds[r];
+    for (const e of (round.entries || [])) {
+      const exId = e.exercise_id;
+
+      // Optionnel: ignorer les "aux" pour best (ex pullups lvl1bis / lsit lvl2bis) ?
+      // Perso je conseille de garder tous les items, mais si tu veux ignorer :
+      // if (exId === "pullups" && e.level_id === "pullups_lvl1bis") continue;
+      // if (exId === "lsit" && e.level_id === "lsit_lvl2bis") continue;
+
+      const score = entryToScore(e.measure_type, e.entry);
+      const text = entryToDisplay(e.measure_type, e.entry);
+
+      if (!out[exId] || score > out[exId].bestScore) {
+        out[exId] = {
+          bestScore: score,
+          bestText: text,
+          bestRoundIndex: r,
+          bestLevelTitle: e.level_title || e.level_id,
+          bestItemTitle: e.level_title || e.level_id,
+          measure_type: e.measure_type
+        };
+      }
+    }
+  }
+  return out;
+}
+
 /* ---------- App state ---------- */
 function ensureProgressShape(p) {
   p.schema_version ||= 1;
@@ -1576,7 +1636,8 @@ function finishWorkout(workout) {
   }
 
   setProgress(PROGRESS);
-  renderDashboard();
+  renderWorkoutSummary(workout, { from: "finish" });
+
 }
 
 /* ---------- Dashboard + replay same session ---------- */
@@ -1648,6 +1709,7 @@ function dashboardCards() {
             ${canResume ? `<button class="danger" id="btnAbandon">Abandonner</button>` : ""}
             <button class="ghost" id="btnTest">${initialDone ? "Configurer & refaire un test" : "Configurer & test initial"}</button>
             <button class="ghost" id="btnReplay" ${canReplay ? "" : "disabled"}>Rejouer la même séance</button>
+            <button class="ghost" id="btnHistory">Historique</button>
             <button class="ghost" id="btnExport">Exporter</button>
             <button class="ghost" id="btnImport">Importer</button>
             <button class="danger" id="btnReset">Reset local (⚠️)</button>
@@ -1669,6 +1731,158 @@ function dashboardCards() {
       </div>
     </div>
   `;
+}
+
+/* ---------- Views: History + Summary ---------- */
+
+function renderHistory() {
+  const list = (PROGRESS.workout_history || []);
+
+  const rows = list.map((w, i) => {
+    const when = formatWhen(w.performed_at);
+    const focus = w.setup?.focus || "—";
+    const exCount = w.circuit_plan?.items?.length || 0;
+    const rounds = w.session_rules?.rounds || (w.rounds?.length || 0);
+
+    return `
+      <div class="item" style="cursor:pointer;" data-hidx="${i}">
+        <div class="left">
+          <div class="name">${escapeHTML(when)}</div>
+          <div class="tiny muted">Focus: ${escapeHTML(focus)} • Exercices/tour: ${exCount} • Tours: ${rounds}</div>
+        </div>
+        <div class="badge ok">Voir</div>
+      </div>
+    `;
+  }).join("");
+
+  render(`
+    <div class="grid">
+      <div class="card">
+        <div class="hd">
+          <div class="h">
+            <div class="k">Historique des séances</div>
+            <div class="v">${escapeHTML((PROGRESS.workout_history || []).length)} séance(s)</div>
+          </div>
+          <div class="pill">Phase 1</div>
+        </div>
+        <div class="bd">
+          <div class="btns">
+            <button class="ghost" id="btnBackDash">Retour dashboard</button>
+          </div>
+          <div class="list">${rows || `<div class="tiny muted">Aucune séance enregistrée.</div>`}</div>
+        </div>
+      </div>
+    </div>
+  `);
+
+  $("#btnBackDash").onclick = () => renderDashboard();
+
+  // click row
+  document.querySelectorAll("[data-hidx]").forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.getAttribute("data-hidx"), 10);
+      const w = PROGRESS.workout_history[idx];
+      if (!w) return;
+      renderWorkoutSummary(w, { from: "history" });
+    };
+  });
+}
+
+function renderWorkoutSummary(workout, { from } = {}) {
+  const bestByEx = computeWorkoutBestByExercise(workout);
+
+  // Liste d’exercices (dans l’ordre du circuit)
+  const order = [];
+  for (const it of (workout.circuit_plan?.items || [])) {
+    if (!order.includes(it.exercise_id)) order.push(it.exercise_id);
+  }
+
+  const phase = findPhase(PROGRAM, workout.phase_id || PROGRESS.app.active_phase_id);
+  const focus = workout.setup?.focus || "—";
+  const selected = workout.setup?.selectedExercises || null;
+  const selText = selected?.length ? selected.join(", ") : "—";
+
+  const summaryItems = order.map(exId => {
+    const f = phase ? findFundamental(phase, exId) : null;
+    const title = f?.title || exId;
+    const best = bestByEx[exId];
+
+    const bestLine = best
+      ? `🏆 ${best.bestText} (tour ${best.bestRoundIndex + 1})`
+      : "—";
+
+    const levelLine = best?.bestLevelTitle ? `${best.bestLevelTitle}` : "—";
+
+    return `
+      <div class="item">
+        <div class="left">
+          <div class="name">${escapeHTML(title)}</div>
+          <div class="tiny muted">Meilleur sur 4 tours : <b>${escapeHTML(bestLine)}</b></div>
+          <div class="tiny muted">Niveau (item) : ${escapeHTML(levelLine)}</div>
+        </div>
+        <div class="badge ok">Best</div>
+      </div>
+    `;
+  }).join("");
+
+  render(`
+    <div class="grid">
+      <div class="card">
+        <div class="hd">
+          <div class="h">
+            <div class="k">Résumé de séance</div>
+            <div class="v">${escapeHTML(formatWhen(workout.performed_at))}</div>
+          </div>
+          <div class="pill">${escapeHTML(focus)}</div>
+        </div>
+
+        <div class="bd">
+          <div class="btns">
+            <button class="ghost" id="btnBack">${from === "history" ? "Retour historique" : "Retour dashboard"}</button>
+            <button class="primary" id="btnHistory">Historique</button>
+            <button class="ghost" id="btnReplayFromSummary">Rejouer la même séance</button>
+          </div>
+
+          <div class="grid" style="margin-top:12px;">
+            <div class="card">
+              <div class="hd"><div class="h"><div class="k">Infos</div><div class="v">Séance</div></div></div>
+              <div class="bd">
+                <div class="tiny muted">Phase: ${escapeHTML(phase?.title || "—")}</div>
+                <div class="tiny muted">Exercices sélectionnés: ${escapeHTML(selText)}</div>
+                <div class="tiny muted">Tours: ${escapeHTML(String(workout.session_rules?.rounds || workout.rounds?.length || 0))}</div>
+                <div class="tiny muted">Repos exos: ${escapeHTML(String(workout.session_rules?.rest_between_exercises_sec ?? "—"))}s</div>
+                <div class="tiny muted">Repos tours: ${escapeHTML(String(workout.session_rules?.rest_between_rounds_sec ?? "—"))}s</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="hd"><div class="h"><div class="k">Meilleurs</div><div class="v">par exercice</div></div></div>
+              <div class="bd">
+                <div class="list">${summaryItems || `<div class="tiny muted">Aucune donnée.</div>`}</div>
+              </div>
+            </div>
+          </div>
+
+          <p class="hint">Le “meilleur” est calculé sur les 4 tours (score numérique: reps/seconds/min(gauche,droite)).</p>
+        </div>
+      </div>
+    </div>
+  `);
+
+  $("#btnBack").onclick = () => {
+    if (from === "history") renderHistory();
+    else renderDashboard();
+  };
+  $("#btnHistory").onclick = () => renderHistory();
+
+  $("#btnReplayFromSummary").onclick = () => {
+    // même logique que dashboard replay
+    const setup = workout.setup || PROGRESS.settings.last_session_setup || null;
+    const selected = setup?.selectedExercises || null;
+    renderWarmupPrompt({
+      next: () => startWorkout({ resume: false, selectedExercises: selected, setup })
+    });
+  };
 }
 
 function renderDashboard() {
@@ -1709,6 +1923,9 @@ function renderDashboard() {
 
   const btnResumeTop = $("#btnResumeTop");
   if (btnResumeTop) btnResumeTop.onclick = resumeFn;
+
+  const btnHistory = $("#btnHistory");
+  if (btnHistory) btnHistory.onclick = () => renderHistory();
 
   $("#btnTest").onclick = () => renderSessionSetup({ mode: "test" });
 
@@ -1771,6 +1988,7 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
 
 
