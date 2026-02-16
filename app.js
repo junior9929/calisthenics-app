@@ -677,6 +677,7 @@ function runWarmups(warmupIds, onDone) {
 
   const stopWarmTimer = () => {
     clearInterval(warmupTimer.id);
+    warmupTimer.id = null;
     warmupTimer.running = false;
   };
 
@@ -781,6 +782,8 @@ function runWarmups(warmupIds, onDone) {
       };
       $("#wuPause").onclick = () => stopWarmTimer();
       $("#wuReset").onclick = () => { stopWarmTimer(); warmupTimer.t = s.duration_sec; update(); };
+      // Auto-start du décompte (sans auto-advance)
+      $("#wuStart")?.click();
     }
   };
 
@@ -876,6 +879,27 @@ function renderTestScreen(ctx) {
 
   animateCard();
 
+  function entryMeetsLevel(level) {
+  const entry = readEntryFromFields(level.type);
+  return meetsValidation({ measure_type: level.type, validate: level.validate }, entry);
+  }
+
+  function updateTestButtons() {
+  const ok = entryMeetsLevel(level);
+  const passBtn = $("#btnPass");
+  if (passBtn) passBtn.disabled = !ok;
+  }
+
+  updateTestButtons();
+
+  // Recalcule dès que l'utilisateur tape
+  const v = $("#v");
+  if (v) v.addEventListener("input", updateTestButtons);
+
+  const l = $("#l"), r = $("#r");
+  if (l) l.addEventListener("input", updateTestButtons);
+  if (r) r.addEventListener("input", updateTestButtons);
+  
   attachSwipe($("#swipeArea"), () => $("#btnPass")?.click(), () => $("#btnBack")?.click());
 
   // Quick controls in test: no "tour précédent" applicable => disable if exists
@@ -895,6 +919,10 @@ function renderTestScreen(ctx) {
   };
 
   $("#btnPass").onclick = () => {
+    if (!entryMeetsLevel(level)) {
+      toast("L’entrée ne valide pas l’objectif. Utilise “Je bloque ici”.");
+      return;
+    }
     const entry = readEntryFromFields(level.type);
     const note = ($("#note").value || "").trim();
     ctx.results[exId] ||= [];
@@ -1198,6 +1226,10 @@ function renderWorkoutScreen(workout, nav) {
   const pct = Math.round((pos / total) * 100);
 
   const item = workout.circuit_plan.items[nav.idx];
+  const exId = item.exercise_id;
+  const f = findFundamental(phase, exId);
+  const currentLevelId = safeGet(PROGRESS, `state.${exId}.current_level_id`, f?.levels?.[0]?.id);
+  const currentLevelTitle = (findLevel(f, currentLevelId)?.title) || currentLevelId || "—";
   const roundNum = nav.round + 1;
 
   const roundObj = workout.rounds[nav.round];
@@ -1242,6 +1274,10 @@ function renderWorkoutScreen(workout, nav) {
               <div class="kpi">
                 <div class="k">Exercice</div>
                 <div class="v">${escapeHTML(String(nav.idx + 1) + "/" + String(workout.circuit_plan.items.length))}</div>
+              </div>
+              <div class="kpi">
+                <div class="k">Niveau en cours</div>
+                <div class="v">${escapeHTML(currentLevelTitle)}</div>
               </div>
               <div class="kpi">
                 <div class="k">Meilleur tour 1</div>
@@ -1658,4 +1694,5 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
