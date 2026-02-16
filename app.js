@@ -1000,10 +1000,15 @@ function runRestTimer(seconds, onDone) {
   const el = $("#restHint");
   if (!el) return onDone?.();
 
+  clearInterval(restInterval);
+  restRunning = false;
+
+  const saveBtn = $("#btnSave");
+  if (saveBtn) saveBtn.disabled = true;
+
   restRunning = true;
   let t = seconds;
   el.textContent = `Repos : ${t}s`;
-  clearInterval(restInterval);
 
   restInterval = setInterval(() => {
     t--;
@@ -1012,6 +1017,8 @@ function runRestTimer(seconds, onDone) {
       restRunning = false;
       el.textContent = "";
       toast("Go !");
+      const saveBtn2 = $("#btnSave");
+      if (saveBtn2) saveBtn2.disabled = false;
       onDone?.();
       return;
     }
@@ -1022,8 +1029,13 @@ function runRestTimer(seconds, onDone) {
 function stopRest(onDone) {
   clearInterval(restInterval);
   restRunning = false;
+
+  const saveBtn = $("#btnSave");
+  if (saveBtn) saveBtn.disabled = false;
+
   const el = $("#restHint");
   if (el) el.textContent = "";
+
   onDone?.();
 }
 
@@ -1251,8 +1263,8 @@ function renderWorkoutScreen(workout, nav) {
 
             <div class="footerBar">
               <button class="ghost" id="btnPrev">Précédent</button>
-              <button class="primary" id="btnSave">Valider</button>
-              <button class="ghost" id="btnRest">Repos 60s</button>
+              <button class="primary" id="btnSave">Valider & Repos</button>
+              <button class="ghost" id="btnRest">Repos</button>
               <button class="ghost" id="btnSkipRest">Passer le repos</button>
               <button class="danger" id="btnFinish">Terminer</button>
             </div>
@@ -1333,25 +1345,34 @@ function renderWorkoutScreen(workout, nav) {
       saved_at: nowISO()
     };
 
-    const idx = roundObj.entries.findIndex(x => x.item_id === item.item_id);
-    if (idx >= 0) roundObj.entries[idx] = record;
+    const idx2 = roundObj.entries.findIndex(x => x.item_id === item.item_id);
+    if (idx2 >= 0) roundObj.entries[idx2] = record;
     else roundObj.entries.push(record);
 
-    // (7) visible feedback
+    // feedback
     const btn = $("#btnSave");
     const old = btn?.textContent;
     if (btn) btn.textContent = "✅ Enregistré";
-    setTimeout(() => { if (btn) btn.textContent = old || "Valider"; }, 900);
+    setTimeout(() => { if (btn) btn.textContent = old || "Valider & Repos"; }, 900);
 
-    // persist nav + workout state (9)
     workout.nav = { round: nav.round, idx: nav.idx };
     persistWorkout(workout);
 
     toast("Enregistré");
     vibrate();
+    return true;
   };
 
-  $("#btnSave").onclick = () => saveRecord();
+  $("#btnSave").onclick = () => {
+  const ok = saveRecord();
+  if (!ok) return;
+
+  const rest = (nav.idx === workout.circuit_plan.items.length - 1)
+    ? workout.session_rules.rest_between_rounds_sec
+    : workout.session_rules.rest_between_exercises_sec;
+
+  runRestTimer(rest, () => goNext(workout, nav, { requireSaved: false }));
+  };
 
   // rest button (60s base, skippable) – you asked base 60 + swipe before end
   $("#btnRest").onclick = () => {
@@ -1637,3 +1658,4 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
