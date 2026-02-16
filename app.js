@@ -43,6 +43,26 @@ function escapeHTML(s) {
 }
 function escapeAttr(s) { return escapeHTML(s).replaceAll("\n", " "); }
 
+function fmtTime(sec) {
+  const s = Math.max(0, Math.floor(sec));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return m > 0 ? `${m}:${String(r).padStart(2,"0")}` : `${r}s`;
+}
+
+function animateCard() {
+  const el = $("#swipeArea");
+  if (!el) return;
+  el.classList.remove("enter");
+  // force reflow
+  void el.offsetWidth;
+  el.classList.add("enter");
+}
+
+function vibrate(ms=12) {
+  try { if (navigator.vibrate) navigator.vibrate(ms); } catch {}
+}
+
 /* ---------- Program helpers ---------- */
 function findPhase(program, phaseId) {
   return (program.phases || []).find((p) => p.id === phaseId) || null;
@@ -83,6 +103,17 @@ const WARMUP_SLOTS = {
     "Pike push-ups"
   ]
 };
+
+function exerciseGroup(exId){
+  // used for stronger visual cue
+  if (exId === "pullups") return "Pull";
+  if (exId === "pushups") return "Push";
+  if (exId === "pistols") return "Jambes";
+  if (exId === "plank") return "Core";
+  if (exId === "dips") return "Push";
+  if (exId === "lsit") return "Core";
+  return "—";
+}
 
 /* ---------- Circuit generation (Phase 1) ---------- */
 function makeWorkoutItem(exId, exTitle, lvl, opts = {}) {
@@ -198,22 +229,19 @@ function proposeLevelUps(program, progress, workout) {
   return proposals;
 }
 
-/* ---------- Swipe ---------- */
+/* ---------- Swipe (4) ---------- */
 function attachSwipe(el, onLeft, onRight) {
   let sx = 0, sy = 0, moved = false;
 
-  // Zone "safe" : si le swipe commence trop près du bord gauche,
-  // on ignore le swipe droite pour éviter le geste iOS "back".
-  const LEFT_EDGE_GUARD_PX = 24;
+  // iOS back gesture guard
+  const LEFT_EDGE_GUARD_PX = 40;
 
   el.addEventListener("touchstart", (e) => {
     const t = e.touches[0];
     sx = t.clientX; sy = t.clientY; moved = false;
   }, { passive: true });
 
-  el.addEventListener("touchmove", (e) => {
-    moved = true;
-  }, { passive: true });
+  el.addEventListener("touchmove", () => { moved = true; }, { passive: true });
 
   el.addEventListener("touchend", (e) => {
     if (!moved) return;
@@ -221,31 +249,32 @@ function attachSwipe(el, onLeft, onRight) {
     const dx = t.clientX - sx;
     const dy = t.clientY - sy;
 
-    // besoin d'un vrai swipe horizontal
     if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
 
-    if (dx < 0) {
-      // swipe gauche = suivant
-      onLeft?.();
-    } else {
-      // swipe droite = précédent (mais seulement si on ne part pas du bord gauche)
-      if (sx < LEFT_EDGE_GUARD_PX) {
-        // On ignore pour ne pas déclencher le "back" iOS
-        return;
-      }
+    if (dx < 0) onLeft?.();
+    else {
+      if (sx < LEFT_EDGE_GUARD_PX) return;
       onRight?.();
     }
   }, { passive: true });
 }
 
-/* ---------- Entry fields ---------- */
+/* ---------- Entry fields + quick controls (2 + 3) ---------- */
 function renderEntryFields(type, existingEntry = null) {
   if (type === "reps" || type === "negatives") {
     const val = existingEntry?.value ?? "";
     return `
       <div class="field">
         <label>Répétitions</label>
-        <input id="v" inputmode="numeric" placeholder="Ex: 8" value="${escapeAttr(val)}" />
+        <div class="quickRow">
+          <input id="v" inputmode="numeric" placeholder="Ex: 8" value="${escapeAttr(val)}" />
+          <div class="quickBtns">
+            <button class="btnMini ghost" type="button" id="dec1">-1</button>
+            <button class="btnMini ghost" type="button" id="inc1">+1</button>
+            <button class="btnMini ghost" type="button" id="inc5">+5</button>
+            <button class="btnMini ghost" type="button" id="samePrevRound">Tour précédent</button>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -254,7 +283,27 @@ function renderEntryFields(type, existingEntry = null) {
     return `
       <div class="field">
         <label>Temps (secondes)</label>
-        <input id="v" inputmode="numeric" placeholder="Ex: 30" value="${escapeAttr(val)}" />
+
+        <div class="timerBox">
+          <div>
+            <div class="timerTime" id="holdTime">${escapeHTML(val ? fmtTime(val) : "0s")}</div>
+            <div class="timerSub">Chrono pour tenir le gainage</div>
+          </div>
+          <div class="quickBtns">
+            <button class="btnMini ghost" type="button" id="holdStart">Start</button>
+            <button class="btnMini ghost" type="button" id="holdPause">Pause</button>
+            <button class="btnMini ghost" type="button" id="holdReset">Reset</button>
+          </div>
+        </div>
+
+        <div class="quickRow" style="margin-top:10px;">
+          <input id="v" inputmode="numeric" placeholder="Ex: 30" value="${escapeAttr(val)}" />
+          <div class="quickBtns">
+            <button class="btnMini ghost" type="button" id="dec5">-5</button>
+            <button class="btnMini ghost" type="button" id="inc5s">+5</button>
+            <button class="btnMini ghost" type="button" id="samePrevRound">Tour précédent</button>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -265,11 +314,29 @@ function renderEntryFields(type, existingEntry = null) {
       <div class="twocol">
         <div class="field">
           <label>Gauche (reps)</label>
-          <input id="l" inputmode="numeric" placeholder="Ex: 5" value="${escapeAttr(l)}" />
+          <div class="quickRow">
+            <input id="l" inputmode="numeric" placeholder="Ex: 5" value="${escapeAttr(l)}" />
+            <div class="quickBtns">
+              <button class="btnMini ghost" type="button" id="lDec1">-1</button>
+              <button class="btnMini ghost" type="button" id="lInc1">+1</button>
+            </div>
+          </div>
         </div>
         <div class="field">
           <label>Droite (reps)</label>
-          <input id="r" inputmode="numeric" placeholder="Ex: 5" value="${escapeAttr(r)}" />
+          <div class="quickRow">
+            <input id="r" inputmode="numeric" placeholder="Ex: 5" value="${escapeAttr(r)}" />
+            <div class="quickBtns">
+              <button class="btnMini ghost" type="button" id="rDec1">-1</button>
+              <button class="btnMini ghost" type="button" id="rInc1">+1</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Raccourci</label>
+        <div class="quickBtns">
+          <button class="btnMini ghost" type="button" id="samePrevRound">Tour précédent</button>
         </div>
       </div>
     `;
@@ -327,6 +394,9 @@ function numericValueForBest(e) {
   return null;
 }
 
+let PROGRAM = null;
+let PROGRESS = null;
+
 function bestRound1ForExercise(exId) {
   let best = null;
   for (const w of (PROGRESS.workout_history || [])) {
@@ -335,7 +405,6 @@ function bestRound1ForExercise(exId) {
     const matches = r1.entries.filter(x => x.exercise_id === exId);
     if (!matches.length) continue;
 
-    // Prefer main entries for pullups and lsit
     let pick = matches[0];
     if (exId === "pullups") pick = matches.find(m => m.level_id !== "pullups_lvl1bis") || matches[0];
     if (exId === "lsit") pick = matches.find(m => m.level_id !== "lsit_lvl2bis") || matches[0];
@@ -375,9 +444,6 @@ function importProgressFromFile(file) {
 }
 
 /* ---------- App state ---------- */
-let PROGRAM = null;
-let PROGRESS = null;
-
 function ensureProgressShape(p) {
   p.schema_version ||= 1;
   p.app ||= { active_program_id: "programme.json", active_phase_id: "phase1_bases" };
@@ -385,7 +451,6 @@ function ensureProgressShape(p) {
   p.tests ||= { initial_test: { performed_at: null, results: {} }, retests: [] };
   if (!p.tests.retests) p.tests.retests = [];
 
-  // Settings / defaults
   p.settings ||= {
     rest_between_exercises_sec: 60,
     rest_between_rounds_sec: 120,
@@ -405,7 +470,8 @@ function ensureProgressShape(p) {
     rounds: [],
     completed: false,
     paused: false,
-    setup: null
+    setup: null,
+    nav: { round: 0, idx: 0 } // (9) persist position
   };
 
   if (!p.workout_history) p.workout_history = [];
@@ -416,7 +482,6 @@ function render(html) { $("#root").innerHTML = html; }
 
 /* ---------- Session setup screen ---------- */
 function defaultSelectionForFocus(focus) {
-  // You can tweak defaults later; user can always check/uncheck.
   if (focus === "pull") return ["pullups", "pistols", "plank", "lsit"];
   if (focus === "push") return ["pushups", "pistols", "plank", "dips"];
   return ["pullups","pushups","pistols","plank","dips","lsit"];
@@ -444,9 +509,6 @@ function renderSessionSetup({ mode }) {
     `;
   }).join("");
 
-  const warmUpper = PROGRESS.settings.warmup_default_upper;
-  const warmLower = PROGRESS.settings.warmup_default_lower;
-
   const pullChoice = PROGRESS.settings.warmup_slot_choices?.pull || WARMUP_SLOTS.pull[0];
   const pushChoice = PROGRESS.settings.warmup_slot_choices?.push || WARMUP_SLOTS.push[0];
 
@@ -467,7 +529,6 @@ function renderSessionSetup({ mode }) {
           </div>
           <p class="hint">
             L’échauffement est proposé <b>avant</b> le test et avant la séance.
-            Repos par défaut: <b>60s</b> (tu peux passer le repos avec swipe/bouton).
           </p>
         </div>
       </div>
@@ -485,7 +546,7 @@ function renderSessionSetup({ mode }) {
             <button class="${focus==="push"?"primary":""}" id="focusPush">Push</button>
             <button class="${focus==="all"?"primary":""}" id="focusAll">Tout</button>
           </div>
-          <p class="hint">Le focus ne force rien : tu peux cocher/décocher les exercices ci-dessous.</p>
+          <p class="hint">Le focus sert de présélection. Tu peux cocher/décocher.</p>
         </div>
       </div>
 
@@ -521,7 +582,7 @@ function renderSessionSetup({ mode }) {
               ${WARMUP_SLOTS.push.map(x => `<option ${x===pushChoice?"selected":""}>${escapeHTML(x)}</option>`).join("")}
             </select>
           </div>
-          <p class="hint">Ces choix seront mémorisés et réutilisés séance après séance.</p>
+          <p class="hint">Ces choix sont mémorisés.</p>
         </div>
       </div>
     </div>
@@ -530,17 +591,12 @@ function renderSessionSetup({ mode }) {
   $("#btnBack").onclick = () => renderDashboard();
 
   const setFocusAndDefaults = (newFocus) => {
-    // set focus + auto defaults but keep user freedom afterwards
     const defaults = defaultSelectionForFocus(newFocus);
     const list = $("#exList");
     for (const cb of list.querySelectorAll("input[type=checkbox][data-ex]")) {
       cb.checked = defaults.includes(cb.getAttribute("data-ex"));
     }
-    // re-render setup screen (simpler)
-    PROGRESS.settings.last_session_setup = {
-      focus: newFocus,
-      selectedExercises: defaults
-    };
+    PROGRESS.settings.last_session_setup = { focus: newFocus, selectedExercises: defaults };
     setProgress(PROGRESS);
     renderSessionSetup({ mode });
   };
@@ -550,41 +606,27 @@ function renderSessionSetup({ mode }) {
   $("#focusAll").onclick  = () => setFocusAndDefaults("all");
 
   $("#btnGo").onclick = () => {
-    // collect selection
     const selectedExercises = [];
     for (const cb of $("#exList").querySelectorAll("input[type=checkbox][data-ex]")) {
       if (cb.checked) selectedExercises.push(cb.getAttribute("data-ex"));
     }
-    if (!selectedExercises.length) {
-      toast("Choisis au moins 1 exercice");
-      return;
-    }
+    if (!selectedExercises.length) { toast("Choisis au moins 1 exercice"); return; }
 
-    // save warmup slot choices
-    PROGRESS.settings.warmup_slot_choices = {
-      pull: $("#slotPull").value,
-      push: $("#slotPush").value
-    };
-
+    PROGRESS.settings.warmup_slot_choices = { pull: $("#slotPull").value, push: $("#slotPush").value };
     const focusNow = PROGRESS.settings.last_session_setup?.focus || "all";
     PROGRESS.settings.last_session_setup = { focus: focusNow, selectedExercises };
-
     setProgress(PROGRESS);
 
-    // Warmup prompt first
     renderWarmupPrompt({
       next: () => {
-        if (mode === "test") {
-          renderTestFlow({ mode: initialDone ? "retest" : "initial" });
-        } else {
-          startWorkout({ resume: false, selectedExercises, setup: PROGRESS.settings.last_session_setup });
-        }
+        if (mode === "test") renderTestFlow({ mode: initialDone ? "retest" : "initial" });
+        else startWorkout({ resume: false, selectedExercises, setup: PROGRESS.settings.last_session_setup });
       }
     });
   };
 }
 
-/* ---------- Warmup prompt + warmup runner ---------- */
+/* ---------- Warmup prompt + warmup runner (8 + 3) ---------- */
 function renderWarmupPrompt({ next }) {
   render(`
     <div class="grid">
@@ -598,12 +640,10 @@ function renderWarmupPrompt({ next }) {
         </div>
         <div class="bd">
           <div class="btns">
-            <button class="primary" id="btnWarm">Commencer par l’échauffement</button>
+            <button class="primary" id="btnWarm">Commencer l’échauffement</button>
             <button class="ghost" id="btnSkip">Passer</button>
           </div>
-          <p class="hint">
-            L’échauffement haut du corps inclut un slot Pull/Push basé sur tes choix.
-          </p>
+          <p class="hint">Tu swipes quand tu as fini une étape.</p>
         </div>
       </div>
     </div>
@@ -611,20 +651,18 @@ function renderWarmupPrompt({ next }) {
 
   $("#btnSkip").onclick = () => next?.();
   $("#btnWarm").onclick = () => {
-    // Decide warmups: always offer upper, and lower if legs selected
     const setup = PROGRESS.settings.last_session_setup;
     const selected = new Set(setup?.selectedExercises || []);
     const warmups = [];
 
-    // Upper if any pull/push/upper related selected
     warmups.push(PROGRESS.settings.warmup_default_upper);
-
-    // Lower if pistols selected
     if (selected.has("pistols")) warmups.push(PROGRESS.settings.warmup_default_lower);
 
     runWarmups(warmups, () => next?.());
   };
 }
+
+let warmupTimer = { running:false, t:0, id:null };
 
 function runWarmups(warmupIds, onDone) {
   const warmups = warmupIds.map(id => getWarmup(PROGRAM, id)).filter(Boolean);
@@ -637,7 +675,13 @@ function runWarmups(warmupIds, onDone) {
 
   let idx = 0;
 
+  const stopWarmTimer = () => {
+    clearInterval(warmupTimer.id);
+    warmupTimer.running = false;
+  };
+
   const renderStep = () => {
+    stopWarmTimer();
     const cur = flatSteps[idx];
     if (!cur) return onDone?.();
 
@@ -646,14 +690,23 @@ function runWarmups(warmupIds, onDone) {
     const slotPush = PROGRESS.settings.warmup_slot_choices?.push || WARMUP_SLOTS.push[0];
 
     let line = "";
+    let big = "";
+    let showTimer = false;
+
     if (s.type === "reps_both_directions") line = `${s.reps_min}-${s.reps_max} / sens`;
     else if (s.type === "reps_each_side") line = `${s.reps_min}-${s.reps_max} / côté`;
     else if (s.type === "reps_each_angle") line = `${s.reps} / angle`;
-    else if (s.type === "timer") line = `${s.duration_sec}s`;
+    else if (s.type === "timer") {
+      line = `${s.duration_sec}s`;
+      showTimer = true;
+      warmupTimer.t = s.duration_sec;
+      big = fmtTime(warmupTimer.t);
+    }
     else if (s.type === "exercise_slot") {
       const chosen = s.slot === "pull" ? slotPull : slotPush;
       line = `${chosen} — ${s.reps_min}-${s.reps_max} reps`;
-    } else line = "—";
+      big = chosen;
+    }
 
     render(`
       <div class="grid">
@@ -668,31 +721,67 @@ function runWarmups(warmupIds, onDone) {
           <div class="bd">
             <div class="workoutCard" id="swipeArea">
               <h2>${escapeHTML(s.title)}</h2>
-              <div class="sub">${escapeHTML(line)}</div>
+              <div class="sub">${escapeHTML(line || "—")}</div>
 
-              <div class="meta">
-                <div class="chip">Swipe gauche: suivant</div>
-                <div class="chip">Swipe droite: précédent</div>
-              </div>
+              ${big ? `
+                <div class="kpis">
+                  <div class="kpi">
+                    <div class="k">Focus</div>
+                    <div class="v">${escapeHTML(big)}</div>
+                  </div>
+                </div>
+              ` : ""}
+
+              ${showTimer ? `
+                <div class="timerBox" style="margin-top:12px;">
+                  <div>
+                    <div class="timerTime" id="wuTime">${escapeHTML(fmtTime(warmupTimer.t))}</div>
+                    <div class="timerSub">Timer échauffement (manuel, pas d’auto-avance)</div>
+                  </div>
+                  <div class="quickBtns">
+                    <button class="btnMini ghost" type="button" id="wuStart">Start</button>
+                    <button class="btnMini ghost" type="button" id="wuPause">Pause</button>
+                    <button class="btnMini ghost" type="button" id="wuReset">Reset</button>
+                  </div>
+                </div>
+              ` : ""}
 
               <div class="footerBar">
                 <button class="ghost" id="btnPrev">Précédent</button>
-                <button class="primary" id="btnNext">Suivant</button>
-                <button class="danger" id="btnDone">Terminer</button>
+                <button class="primary" id="btnDoneStep">Marquer fait</button>
+                <button class="danger" id="btnDoneAll">Terminer</button>
               </div>
 
-              <div class="hint center">Objectif: max 5 min (haut) / 3 min (bas). Tu swipes quand tu as fini.</div>
+              <div class="hint center">Tu peux swiper gauche/droite (évite le bord gauche).</div>
             </div>
           </div>
         </div>
       </div>
     `);
 
-    attachSwipe($("#swipeArea"), () => $("#btnNext")?.click(), () => $("#btnPrev")?.click());
+    animateCard();
+
+    attachSwipe($("#swipeArea"), () => $("#btnDoneStep")?.click(), () => $("#btnPrev")?.click());
 
     $("#btnPrev").onclick = () => { if (idx > 0) { idx--; renderStep(); } else toast("Début échauffement"); };
-    $("#btnNext").onclick = () => { if (idx < flatSteps.length - 1) { idx++; renderStep(); } else onDone?.(); };
-    $("#btnDone").onclick = () => onDone?.();
+    $("#btnDoneStep").onclick = () => { if (idx < flatSteps.length - 1) { idx++; vibrate(); renderStep(); } else onDone?.(); };
+    $("#btnDoneAll").onclick = () => onDone?.();
+
+    if (showTimer) {
+      const update = () => { const el = $("#wuTime"); if (el) el.textContent = fmtTime(warmupTimer.t); };
+
+      $("#wuStart").onclick = () => {
+        if (warmupTimer.running) return;
+        warmupTimer.running = true;
+        warmupTimer.id = setInterval(() => {
+          warmupTimer.t = Math.max(0, warmupTimer.t - 1);
+          update();
+          if (warmupTimer.t === 0) stopWarmTimer();
+        }, 1000);
+      };
+      $("#wuPause").onclick = () => stopWarmTimer();
+      $("#wuReset").onclick = () => { stopWarmTimer(); warmupTimer.t = s.duration_sec; update(); };
+    }
   };
 
   renderStep();
@@ -707,12 +796,8 @@ function renderTestFlow({ mode }) {
 }
 
 function testMaxLevelIndexReached(ctx, exId) {
-  // si on a déjà des résultats sur cet exercice, on retourne le dernier index de niveau atteint,
-  // sinon 0.
   const res = ctx.results?.[exId];
   if (!res || !res.length) return 0;
-
-  // on veut le dernier niveau vu dans le programme (pas juste le dernier push)
   const phase = findPhase(PROGRAM, PROGRESS.app.active_phase_id);
   const f = findFundamental(phase, exId);
   const lastLevelId = res[res.length - 1].level_id;
@@ -724,24 +809,13 @@ function testGoBack(ctx) {
   const phase = findPhase(PROGRAM, PROGRESS.app.active_phase_id);
   const order = phase.fundamentals_order || [];
 
-  // 1) reculer d'un niveau si possible
-  if (ctx.levelIdx > 0) {
-    ctx.levelIdx--;
-    return true;
-  }
-
-  // 2) reculer d'un exercice si possible
+  if (ctx.levelIdx > 0) { ctx.levelIdx--; return true; }
   if (ctx.exIdx > 0) {
     ctx.exIdx--;
-
-    // revenir au "dernier niveau atteint" sur l'exercice précédent
     const prevExId = order[ctx.exIdx];
     ctx.levelIdx = testMaxLevelIndexReached(ctx, prevExId);
-
     return true;
   }
-
-  // 3) on est tout au début -> impossible de revenir
   return false;
 }
 
@@ -770,11 +844,22 @@ function renderTestScreen(ctx) {
             <h2>${escapeHTML(level.title)}</h2>
             <div class="sub">${escapeHTML(goal)}</div>
 
+            <div class="kpis">
+              <div class="kpi">
+                <div class="k">Groupe</div>
+                <div class="v">${escapeHTML(exerciseGroup(exId))}</div>
+              </div>
+              <div class="kpi">
+                <div class="k">Niveau</div>
+                <div class="v">${escapeHTML(String(ctx.levelIdx + 1) + "/" + String(f.levels.length))}</div>
+              </div>
+            </div>
+
             <div class="entry">
               ${renderEntryFields(level.type)}
               <div class="field">
                 <label>Note (optionnel)</label>
-                <textarea id="note" placeholder="Ex: élastique vert / banc / amplitude…"></textarea>
+                <textarea id="note" placeholder="Ex: élastique / banc / amplitude…"></textarea>
               </div>
             </div>
 
@@ -783,15 +868,25 @@ function renderTestScreen(ctx) {
               <button class="danger" id="btnFail">Je bloque ici</button>
               <button class="primary" id="btnPass">Objectif atteint</button>
             </div>
-
-            <div class="hint">Swipe gauche = “Objectif atteint”, swipe droite = “Retour”.</div>
           </div>
         </div>
       </div>
     </div>
   `);
 
+  animateCard();
+
   attachSwipe($("#swipeArea"), () => $("#btnPass")?.click(), () => $("#btnBack")?.click());
+
+  // Quick controls in test: no "tour précédent" applicable => disable if exists
+  const samePrev = $("#samePrevRound");
+  if (samePrev) samePrev.disabled = true;
+
+  wireQuickControlsForCurrentScreen({
+    type: level.type,
+    getPrevRoundEntry: () => null, // test has no rounds
+    onValueChange: (val) => {}
+  });
 
   $("#btnBack").onclick = () => {
     const ok = testGoBack(ctx);
@@ -807,6 +902,7 @@ function renderTestScreen(ctx) {
 
     if (ctx.levelIdx < f.levels.length - 1) {
       ctx.levelIdx++;
+      vibrate();
       return renderTestScreen(ctx);
     }
     applyTestLockIn(exId, level, entry, note);
@@ -829,6 +925,7 @@ function nextExerciseOrFinish(ctx) {
   if (ctx.exIdx < order.length - 1) {
     ctx.exIdx++;
     ctx.levelIdx = 0;
+    vibrate();
     return renderTestScreen(ctx);
   }
 
@@ -867,7 +964,7 @@ function applyTestLockIn(exId, levelLocked, baselineEntry, baselineNote) {
   }
 }
 
-/* ---------- Fallback helper (C) ---------- */
+/* ---------- Fallback helper ---------- */
 function isBelowFallbackThreshold(phase, item, entry) {
   const repsTh = phase.fallback_rules?.reps_threshold ?? 3;
   const holdTh = phase.fallback_rules?.hold_threshold_sec ?? 5;
@@ -897,13 +994,15 @@ function suggestFallback(program, progress, item) {
 let restInterval = null;
 let restRunning = false;
 
+let holdTimer = { running:false, t:0, id:null };
+
 function runRestTimer(seconds, onDone) {
   const el = $("#restHint");
   if (!el) return onDone?.();
 
   restRunning = true;
   let t = seconds;
-  el.textContent = `Repos : ${t}s (swipe gauche pour passer)`;
+  el.textContent = `Repos : ${t}s`;
   clearInterval(restInterval);
 
   restInterval = setInterval(() => {
@@ -916,7 +1015,7 @@ function runRestTimer(seconds, onDone) {
       onDone?.();
       return;
     }
-    el.textContent = `Repos : ${t}s (swipe gauche pour passer)`;
+    el.textContent = `Repos : ${t}s`;
   }, 1000);
 }
 
@@ -928,18 +1027,23 @@ function stopRest(onDone) {
   onDone?.();
 }
 
+function persistWorkout(workout) {
+  PROGRESS.last_workout = deepClone(workout);
+  setProgress(PROGRESS);
+}
+
 function startWorkout({ resume, selectedExercises, setup }) {
   const phase = findPhase(PROGRAM, PROGRESS.app.active_phase_id);
   const initialDone = !!safeGet(PROGRESS, "tests.initial_test.performed_at", null);
   if (!initialDone) {
-    // propose warmup+test via setup screen
     return renderSessionSetup({ mode: "test" });
   }
 
   let workout = null;
 
-  if (resume && PROGRESS.last_workout?.workout_id && !PROGRESS.last_workout.completed) {
+  if (resume && PROGRESS.last_workout?.workout_id && PROGRESS.last_workout?.completed === false) {
     workout = deepClone(PROGRESS.last_workout);
+    workout.paused = false; // resume clears pause
     toast("Séance reprise");
   } else {
     const plan = getCircuitForPhase1(PROGRAM, PROGRESS, selectedExercises);
@@ -956,17 +1060,126 @@ function startWorkout({ resume, selectedExercises, setup }) {
       circuit_plan: plan,
       rounds: Array.from({ length: phase.session_rules.rounds }, () => ({ entries: [] })),
       completed: false,
-      setup: setup || PROGRESS.settings.last_session_setup || null
+      paused: false,
+      setup: setup || PROGRESS.settings.last_session_setup || null,
+      nav: { round: 0, idx: 0 }
     };
-    PROGRESS.last_workout = deepClone(workout);
-    setProgress(PROGRESS);
+    persistWorkout(workout);
   }
 
-  renderWorkoutScreen(workout, { round: 0, idx: 0 });
+  const nav = workout.nav || { round: 0, idx: 0 };
+  renderWorkoutScreen(workout, { round: nav.round, idx: nav.idx });
+}
+
+function buildStepListHTML(workout, nav) {
+  const roundObj = workout.rounds[nav.round];
+  return `
+    <div class="stepList">
+      ${workout.circuit_plan.items.map((it, i) => {
+        const saved = roundObj.entries.some(e => e.item_id === it.item_id);
+        const isActive = i === nav.idx;
+        return `
+          <div class="stepPill ${isActive ? "active" : ""}">
+            <span class="dot ${saved ? "done" : ""} ${isActive ? "active" : ""}"></span>
+            ${escapeHTML(it.exercise_title)}
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+/* (2) wire quick controls depending on context */
+function wireQuickControlsForCurrentScreen({ type, getPrevRoundEntry }) {
+  const toNum = (x) => {
+    const n = parseFloat(String(x ?? "").replace(",", "."));
+    return Number.isFinite(n) ? n : 0;
+  };
+  const setV = (n) => { const v = $("#v"); if (v) v.value = String(Math.max(0, Math.floor(n))); };
+
+  if (type === "reps" || type === "negatives") {
+    const dec1 = $("#dec1"), inc1 = $("#inc1"), inc5 = $("#inc5"), same = $("#samePrevRound");
+    if (dec1) dec1.onclick = () => setV(toNum($("#v")?.value) - 1);
+    if (inc1) inc1.onclick = () => setV(toNum($("#v")?.value) + 1);
+    if (inc5) inc5.onclick = () => setV(toNum($("#v")?.value) + 5);
+    if (same) same.onclick = () => {
+      const prev = getPrevRoundEntry?.();
+      if (!prev) return toast("Pas de tour précédent");
+      setV(prev.value ?? 0);
+      toast("Copié (tour précédent)");
+    };
+  }
+
+  if (type === "hold_sec") {
+    const dec5 = $("#dec5"), inc5s = $("#inc5s"), same = $("#samePrevRound");
+    if (dec5) dec5.onclick = () => setV(toNum($("#v")?.value) - 5);
+    if (inc5s) inc5s.onclick = () => setV(toNum($("#v")?.value) + 5);
+    if (same) same.onclick = () => {
+      const prev = getPrevRoundEntry?.();
+      if (!prev) return toast("Pas de tour précédent");
+      setV(prev.value ?? 0);
+      const ht = $("#holdTime"); if (ht) ht.textContent = fmtTime(prev.value ?? 0);
+      toast("Copié (tour précédent)");
+    };
+
+    // timer controls
+    const ht = $("#holdTime");
+    const updateHT = () => { if (ht) ht.textContent = fmtTime(holdTimer.t); };
+    const stop = () => { clearInterval(holdTimer.id); holdTimer.running = false; };
+    const start = () => {
+      if (holdTimer.running) return;
+      holdTimer.running = true;
+      holdTimer.id = setInterval(() => {
+        holdTimer.t += 1;
+        updateHT();
+      }, 1000);
+    };
+    $("#holdStart") && ($("#holdStart").onclick = () => start());
+    $("#holdPause") && ($("#holdPause").onclick = () => stop());
+    $("#holdReset") && ($("#holdReset").onclick = () => { stop(); holdTimer.t = 0; updateHT(); setV(0); });
+
+    // keep input and timer aligned when user edits value
+    const v = $("#v");
+    if (v) v.addEventListener("input", () => {
+      holdTimer.t = toNum(v.value);
+      updateHT();
+    });
+
+    // init timer with existing value
+    holdTimer.t = toNum($("#v")?.value);
+    updateHT();
+  }
+
+  if (type === "reps_each_side") {
+    const lDec1=$("#lDec1"), lInc1=$("#lInc1"), rDec1=$("#rDec1"), rInc1=$("#rInc1"), same=$("#samePrevRound");
+    const setL = (n) => { const el=$("#l"); if(el) el.value=String(Math.max(0,Math.floor(n))); };
+    const setR = (n) => { const el=$("#r"); if(el) el.value=String(Math.max(0,Math.floor(n))); };
+    if (lDec1) lDec1.onclick = () => setL(toNum($("#l")?.value) - 1);
+    if (lInc1) lInc1.onclick = () => setL(toNum($("#l")?.value) + 1);
+    if (rDec1) rDec1.onclick = () => setR(toNum($("#r")?.value) - 1);
+    if (rInc1) rInc1.onclick = () => setR(toNum($("#r")?.value) + 1);
+    if (same) same.onclick = () => {
+      const prev = getPrevRoundEntry?.();
+      if (!prev) return toast("Pas de tour précédent");
+      setL(prev.left ?? 0);
+      setR(prev.right ?? 0);
+      toast("Copié (tour précédent)");
+    };
+  }
+}
+
+function getPrevRoundEntryForItem(workout, nav, item) {
+  if (nav.round === 0) return null;
+  const prevRound = workout.rounds[nav.round - 1];
+  const prev = prevRound.entries.find(e => e.exercise_id === item.exercise_id && e.level_id === item.level_id);
+  return prev?.entry || null;
 }
 
 function renderWorkoutScreen(workout, nav) {
   const phase = findPhase(PROGRAM, PROGRESS.app.active_phase_id);
+
+  // persist nav each render (9)
+  workout.nav = { round: nav.round, idx: nav.idx };
 
   const total = workout.session_rules.rounds * workout.circuit_plan.items.length;
   const pos = nav.round * workout.circuit_plan.items.length + nav.idx + 1;
@@ -981,6 +1194,8 @@ function renderWorkoutScreen(workout, nav) {
   const best = bestRound1ForExercise(item.exercise_id);
   const bestLine = best ? `Meilleur tour 1: ${best.val}${best.measure_type === "hold_sec" ? "s" : ""}` : "Meilleur tour 1: —";
 
+  const group = exerciseGroup(item.exercise_id);
+
   render(`
     <div class="grid">
       <div class="card">
@@ -994,21 +1209,32 @@ function renderWorkoutScreen(workout, nav) {
         <div class="bd">
           <div class="workoutTop">
             <div class="progress"><div style="width:${pct}%"></div></div>
+
             <div class="row">
               <div class="tiny muted">Repos: ${workout.session_rules.rest_between_exercises_sec}s • Tours: ${workout.session_rules.rest_between_rounds_sec}s</div>
-              <button class="ghost" id="btnDash">Dashboard</button>
+              <button class="ghost" id="btnPause">⏸️ Pause</button>
             </div>
+
+            ${buildStepListHTML(workout, nav)}
           </div>
 
           <div class="workoutCard" id="swipeArea">
-            <h2>${escapeHTML(item.title)}</h2>
+            <h2>${escapeHTML(item.exercise_title)} — ${escapeHTML(item.level_title)}</h2>
             <div class="sub">${escapeHTML(formatValidate(item.measure_type, item.validate))}</div>
 
-            <div class="meta">
-              <div class="chip">${escapeHTML(item.exercise_title)}</div>
-              <div class="chip">${escapeHTML(bestLine)}</div>
-              <div class="chip">Swipe gauche: suivant</div>
-              <div class="chip">Swipe droite: précédent</div>
+            <div class="kpis">
+              <div class="kpi">
+                <div class="k">Groupe</div>
+                <div class="v">${escapeHTML(group)}</div>
+              </div>
+              <div class="kpi">
+                <div class="k">Exercice</div>
+                <div class="v">${escapeHTML(String(nav.idx + 1) + "/" + String(workout.circuit_plan.items.length))}</div>
+              </div>
+              <div class="kpi">
+                <div class="k">Meilleur tour 1</div>
+                <div class="v">${escapeHTML(best ? (best.val + (best.measure_type==="hold_sec"?"s":"")) : "—")}</div>
+              </div>
             </div>
 
             <div class="entry">
@@ -1025,7 +1251,8 @@ function renderWorkoutScreen(workout, nav) {
 
             <div class="footerBar">
               <button class="ghost" id="btnPrev">Précédent</button>
-              <button class="primary" id="btnSave">Valider & Repos</button>
+              <button class="primary" id="btnSave">Valider</button>
+              <button class="ghost" id="btnRest">Repos 60s</button>
               <button class="ghost" id="btnSkipRest">Passer le repos</button>
               <button class="danger" id="btnFinish">Terminer</button>
             </div>
@@ -1037,20 +1264,28 @@ function renderWorkoutScreen(workout, nav) {
     </div>
   `);
 
+  animateCard();
+
+  // load existing fields
   if (already) {
     $("#fallback").value = already.fallback || "";
     $("#note").value = already.note || "";
   }
 
-  $("#btnDash").onclick = () => {
-    const ok = confirm("Quitter la séance ? Tu pourras la reprendre ensuite.");
+  // wire quick controls with "same prev round"
+  wireQuickControlsForCurrentScreen({
+    type: item.measure_type,
+    getPrevRoundEntry: () => getPrevRoundEntryForItem(workout, nav, item)
+  });
+
+  // Pause (6)
+  $("#btnPause").onclick = () => {
+    const ok = confirm("Mettre la séance en pause ? Tu pourras la reprendre ensuite.");
     if (!ok) return;
 
     workout.paused = true;
     workout.completed = false;
-
-    PROGRESS.last_workout = deepClone(workout);
-    setProgress(PROGRESS);
+    persistWorkout(workout);
 
     toast("Séance mise en pause");
     renderDashboard();
@@ -1073,7 +1308,7 @@ function renderWorkoutScreen(workout, nav) {
     () => goPrev(workout, nav)
   );
 
-  $("#btnSave").onclick = () => {
+  const saveRecord = () => {
     const entry = readEntryFromFields(item.measure_type);
     const fallback = ($("#fallback").value || "").trim();
     const note = ($("#note").value || "").trim();
@@ -1102,8 +1337,27 @@ function renderWorkoutScreen(workout, nav) {
     if (idx >= 0) roundObj.entries[idx] = record;
     else roundObj.entries.push(record);
 
-    PROGRESS.last_workout = deepClone(workout);
-    setProgress(PROGRESS);
+    // (7) visible feedback
+    const btn = $("#btnSave");
+    const old = btn?.textContent;
+    if (btn) btn.textContent = "✅ Enregistré";
+    setTimeout(() => { if (btn) btn.textContent = old || "Valider"; }, 900);
+
+    // persist nav + workout state (9)
+    workout.nav = { round: nav.round, idx: nav.idx };
+    persistWorkout(workout);
+
+    toast("Enregistré");
+    vibrate();
+  };
+
+  $("#btnSave").onclick = () => saveRecord();
+
+  // rest button (60s base, skippable) – you asked base 60 + swipe before end
+  $("#btnRest").onclick = () => {
+    // require saved
+    const saved = roundObj.entries.some(x => x.item_id === item.item_id);
+    if (!saved) { toast("Valide d’abord"); return; }
 
     const rest = (nav.idx === workout.circuit_plan.items.length - 1)
       ? workout.session_rules.rest_between_rounds_sec
@@ -1117,8 +1371,19 @@ function goPrev(workout, nav) {
   clearInterval(restInterval);
   restRunning = false;
 
-  if (nav.idx > 0) { nav.idx--; return renderWorkoutScreen(workout, nav); }
-  if (nav.round > 0) { nav.round--; nav.idx = workout.circuit_plan.items.length - 1; return renderWorkoutScreen(workout, nav); }
+  if (nav.idx > 0) {
+    nav.idx--;
+    workout.nav = { round: nav.round, idx: nav.idx };
+    persistWorkout(workout);
+    return renderWorkoutScreen(workout, nav);
+  }
+  if (nav.round > 0) {
+    nav.round--;
+    nav.idx = workout.circuit_plan.items.length - 1;
+    workout.nav = { round: nav.round, idx: nav.idx };
+    persistWorkout(workout);
+    return renderWorkoutScreen(workout, nav);
+  }
   toast("Début de séance");
 }
 
@@ -1130,11 +1395,22 @@ function goNext(workout, nav, { requireSaved }) {
     const item = workout.circuit_plan.items[nav.idx];
     const roundObj = workout.rounds[nav.round];
     const saved = roundObj.entries.some(x => x.item_id === item.item_id);
-    if (!saved) { toast("Enregistre d’abord (Valider & Repos)"); return; }
+    if (!saved) { toast("Valide d’abord"); return; }
   }
 
-  if (nav.idx < workout.circuit_plan.items.length - 1) { nav.idx++; return renderWorkoutScreen(workout, nav); }
-  if (nav.round < workout.session_rules.rounds - 1) { nav.round++; nav.idx = 0; return renderWorkoutScreen(workout, nav); }
+  if (nav.idx < workout.circuit_plan.items.length - 1) {
+    nav.idx++;
+    workout.nav = { round: nav.round, idx: nav.idx };
+    persistWorkout(workout);
+    return renderWorkoutScreen(workout, nav);
+  }
+  if (nav.round < workout.session_rules.rounds - 1) {
+    nav.round++;
+    nav.idx = 0;
+    workout.nav = { round: nav.round, idx: nav.idx };
+    persistWorkout(workout);
+    return renderWorkoutScreen(workout, nav);
+  }
   finishWorkout(workout);
 }
 
@@ -1143,6 +1419,8 @@ function finishWorkout(workout) {
   restRunning = false;
 
   workout.completed = true;
+  workout.paused = false;
+
   PROGRESS.workout_history.unshift(deepClone(workout));
   PROGRESS.last_workout = deepClone(workout);
 
@@ -1167,7 +1445,7 @@ function finishWorkout(workout) {
   renderDashboard();
 }
 
-/* ---------- Dashboard + replay same session (5) ---------- */
+/* ---------- Dashboard + replay same session ---------- */
 function dashboardCards() {
   const phaseId = PROGRESS.app.active_phase_id;
   const phase = findPhase(PROGRAM, phaseId);
@@ -1199,8 +1477,28 @@ function dashboardCards() {
   const isPaused = !!(PROGRESS.last_workout?.paused);
   const canReplay = !!(PROGRESS.last_workout?.completed && PROGRESS.last_workout?.circuit_plan?.items?.length);
 
+  const pausedBanner = (canResume && isPaused) ? `
+    <div class="card">
+      <div class="hd">
+        <div class="h">
+          <div class="k">Séance en pause</div>
+          <div class="v">Tu peux reprendre exactement où tu t’es arrêté</div>
+        </div>
+        <div class="pill">⏸️ Pause</div>
+      </div>
+      <div class="bd">
+        <div class="btns">
+          <button class="primary" id="btnResumeTop">Reprendre</button>
+          <button class="danger" id="btnAbandonTop">Abandonner</button>
+        </div>
+      </div>
+    </div>
+  ` : "";
+
   return `
     <div class="grid">
+      ${pausedBanner}
+
       <div class="card">
         <div class="hd">
           <div class="h">
@@ -1212,7 +1510,7 @@ function dashboardCards() {
         <div class="bd">
           <div class="btns">
             <button class="primary" id="btnStart">${initialDone ? "Configurer & lancer une séance" : "Configurer & faire le test initial"}</button>
-            ${canResume ? `<button id="btnResume">${isPaused ? "Reprendre la séance (pause)" : "Reprendre la séance"}</button>` : ""}
+            ${canResume ? `<button id="btnResume">${isPaused ? "Reprendre (pause)" : "Reprendre la séance"}</button>` : ""}
             ${canResume ? `<button class="danger" id="btnAbandon">Abandonner</button>` : ""}
             <button class="ghost" id="btnTest">${initialDone ? "Configurer & refaire un test" : "Configurer & test initial"}</button>
             <button class="ghost" id="btnReplay" ${canReplay ? "" : "disabled"}>Rejouer la même séance</button>
@@ -1220,7 +1518,7 @@ function dashboardCards() {
             <button class="ghost" id="btnImport">Importer</button>
             <button class="danger" id="btnReset">Reset local (⚠️)</button>
           </div>
-          <p class="hint">Tu peux choisir Pull/Push/Tout + cocher les exercices à inclure avant chaque séance.</p>
+          <p class="hint">Pause = tu reviens au menu sans perdre ta position.</p>
         </div>
       </div>
 
@@ -1245,12 +1543,10 @@ function renderDashboard() {
   const initialDone = !!safeGet(PROGRESS, "tests.initial_test.performed_at", null);
 
   $("#btnStart").onclick = () => {
-    // Setup then warmup then either test or workout
     renderSessionSetup({ mode: initialDone ? "workout" : "test" });
   };
 
-  const btnAbandon = $("#btnAbandon");
-  if (btnAbandon) btnAbandon.onclick = () => {
+  const abandonFn = () => {
     const ok = confirm("Abandonner la séance en cours ? (Elle ne sera pas ajoutée à l’historique)");
     if (!ok) return;
 
@@ -1259,22 +1555,31 @@ function renderDashboard() {
     PROGRESS.last_workout.circuit_plan = { items: [] };
     PROGRESS.last_workout.completed = false;
     PROGRESS.last_workout.paused = false;
+    PROGRESS.last_workout.nav = { round: 0, idx: 0 };
 
     setProgress(PROGRESS);
     toast("Séance abandonnée");
     renderDashboard();
   };
 
-  const btnResume = $("#btnResume");
-  if (btnResume) btnResume.onclick = () => startWorkout({ resume: true });
+  const btnAbandon = $("#btnAbandon");
+  if (btnAbandon) btnAbandon.onclick = abandonFn;
 
-  $("#btnTest").onclick = () => {
-    renderSessionSetup({ mode: "test" });
-  };
+  const btnAbandonTop = $("#btnAbandonTop");
+  if (btnAbandonTop) btnAbandonTop.onclick = abandonFn;
+
+  const resumeFn = () => startWorkout({ resume: true });
+
+  const btnResume = $("#btnResume");
+  if (btnResume) btnResume.onclick = resumeFn;
+
+  const btnResumeTop = $("#btnResumeTop");
+  if (btnResumeTop) btnResumeTop.onclick = resumeFn;
+
+  $("#btnTest").onclick = () => renderSessionSetup({ mode: "test" });
 
   $("#btnReplay").onclick = () => {
     if (!(PROGRESS.last_workout?.completed && PROGRESS.last_workout?.circuit_plan?.items?.length)) return;
-    // New workout with same selected exercises, same plan logic = reuse setup selection if present
     const setup = PROGRESS.last_workout.setup || PROGRESS.settings.last_session_setup || null;
     const selected = setup?.selectedExercises || null;
 
@@ -1323,7 +1628,7 @@ async function init() {
   PROGRESS = ensureProgressShape(p);
   setProgress(PROGRESS);
 
-  $("#subtitle").textContent = "Séance configurable + échauffement + repos skippable";
+  $("#subtitle").textContent = "Séance fluide : transitions, quick input, timers, pause & reprise";
   renderDashboard();
 }
 
@@ -1332,5 +1637,3 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
-
-
