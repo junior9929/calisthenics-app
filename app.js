@@ -2131,7 +2131,6 @@ async function init() {
   PROGRESS = ensureProgressShape(p);
   setProgress(PROGRESS);
 
-  $("#subtitle").textContent = "Séance fluide : transitions, quick input, timers, pause & reprise";
   renderDashboard();
 }
 
@@ -2140,6 +2139,7 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
 
 
