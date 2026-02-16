@@ -304,6 +304,76 @@
       display:none;
       z-index: 50;
     }
+
+    /* ===== REST OVERLAY (chrono repos visible) ===== */
+    #restOverlay{
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(2,6,23,.72);
+      backdrop-filter: blur(10px);
+      z-index: 9999;
+    }
+
+    #restOverlay .box{
+      width: min(520px, 100%);
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(15,23,42,.92);
+      box-shadow: 0 18px 50px rgba(0,0,0,.45);
+      padding: 18px;
+    }
+
+    #restOverlay .title{
+      font-weight: 700;
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    #restOverlay .big{
+      font-weight: 800;
+      font-size: 64px;
+      line-height: 1;
+      margin: 12px 0;
+      text-align: center;
+    }
+
+    #restOverlay .sub{
+      text-align: center;
+      opacity: .85;
+      font-size: 14px;
+    }
+
+    #restOverlay .bar{
+      height: 10px;
+      background: rgba(255,255,255,.10);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 14px 0 10px;
+    }
+
+    #restOverlay .bar > div{
+      height: 100%;
+      width: 0%;
+      background: rgba(56,189,248,.95); /* bleu clair */
+    }
+
+    #restOverlay .btns{
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    #restOverlay .btns button{
+      flex: 1 1 auto;
+      padding: 14px 14px;
+      border-radius: 16px;
+      font-size: 16px;
+    }
+
   </style>
 </head>
 <body>
@@ -327,3 +397,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
