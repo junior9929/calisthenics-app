@@ -846,6 +846,9 @@ function renderTestScreen(ctx) {
           <div class="workoutCard" id="swipeArea">
             <h2>${escapeHTML(level.title)}</h2>
             <div class="sub">${escapeHTML(goal)}</div>
+            <div class="meta" style="margin-top:10px;">
+              <div class="chip" id="validBadge">❌ Pas encore</div>
+            </div>
 
             <div class="kpis">
               <div class="kpi">
@@ -885,10 +888,20 @@ function renderTestScreen(ctx) {
   }
 
   function updateTestButtons() {
-  const ok = entryMeetsLevel(level);
-  const passBtn = $("#btnPass");
-  if (passBtn) passBtn.disabled = !ok;
+    const ok = entryMeetsLevel(level);
+
+    const passBtn = $("#btnPass");
+    if (passBtn) passBtn.disabled = !ok;
+
+    const badge = $("#validBadge");
+    if (badge) {
+      badge.textContent = ok ? "✅ Objectif validé" : "❌ Pas encore";
+      badge.style.borderColor = ok ? "rgba(52,211,153,.40)" : "rgba(251,113,133,.40)";
+      badge.style.color = ok ? "rgba(52,211,153,.95)" : "rgba(251,113,133,.95)";
+      badge.style.background = ok ? "rgba(52,211,153,.10)" : "rgba(251,113,133,.10)";
+    }
   }
+
 
   updateTestButtons();
 
@@ -909,9 +922,11 @@ function renderTestScreen(ctx) {
   wireQuickControlsForCurrentScreen({
     type: level.type,
     getPrevRoundEntry: () => null, // test has no rounds
-    onValueChange: (val) => {}
   });
 
+  const samePrevBtn = $("#samePrevRound");
+  if (samePrevBtn) samePrevBtn.addEventListener("click", () => setTimeout(updateWorkoutBadge, 0));
+  
   $("#btnBack").onclick = () => {
     const ok = testGoBack(ctx);
     if (!ok) return renderDashboard();
@@ -1265,6 +1280,9 @@ function renderWorkoutScreen(workout, nav) {
           <div class="workoutCard" id="swipeArea">
             <h2>${escapeHTML(item.exercise_title)} — ${escapeHTML(item.level_title)}</h2>
             <div class="sub">${escapeHTML(formatValidate(item.measure_type, item.validate))}</div>
+            <div class="meta" style="margin-top:10px;">
+              <div class="chip" id="workoutValidBadge">—</div>
+            </div>
 
             <div class="kpis">
               <div class="kpi">
@@ -1320,6 +1338,45 @@ function renderWorkoutScreen(workout, nav) {
     $("#note").value = already.note || "";
   }
 
+  function workoutEntryMeets() {
+    const entry = readEntryFromFields(item.measure_type);
+    return meetsValidation(
+      { measure_type: item.measure_type, validate: item.validate },
+      entry
+    );
+  }
+
+  function updateWorkoutBadge() {
+    const badge = $("#workoutValidBadge");
+    if (!badge) return;
+
+    // Si pas d'objectif (validate null) -> neutre
+    if (!item.validate) {
+      badge.textContent = "ℹ️ Pas d’objectif (note libre)";
+      badge.style.borderColor = "rgba(255,255,255,.15)";
+      badge.style.color = "rgba(167,180,204,.95)";
+      badge.style.background = "rgba(255,255,255,.03)";
+      return;
+    }
+
+    const ok = workoutEntryMeets();
+    badge.textContent = ok ? "✅ Objectif atteint" : "❌ Sous l’objectif";
+
+    badge.style.borderColor = ok ? "rgba(52,211,153,.40)" : "rgba(251,113,133,.40)";
+    badge.style.color = ok ? "rgba(52,211,153,.95)" : "rgba(251,113,133,.95)";
+    badge.style.background = ok ? "rgba(52,211,153,.10)" : "rgba(251,113,133,.10)";
+  }
+
+  // init + listeners input
+  updateWorkoutBadge();
+
+  const v = $("#v");
+  if (v) v.addEventListener("input", updateWorkoutBadge);
+
+  const l = $("#l"), r = $("#r");
+  if (l) l.addEventListener("input", updateWorkoutBadge);
+  if (r) r.addEventListener("input", updateWorkoutBadge);
+  
   // wire quick controls with "same prev round"
   wireQuickControlsForCurrentScreen({
     type: item.measure_type,
@@ -1694,5 +1751,6 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
 
