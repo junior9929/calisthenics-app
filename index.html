@@ -44,9 +44,7 @@
       gap:12px;
       padding: 8px 4px 14px;
     }
-    .title{
-      display:flex; flex-direction:column; gap:4px;
-    }
+    .title{display:flex; flex-direction:column; gap:4px;}
     .title h1{ margin:0; font-size:18px; letter-spacing:.2px}
     .title p{ margin:0; color:var(--muted); font-size:12.5px}
     .pill{
@@ -56,8 +54,8 @@
       border-radius: 999px;
       font-size: 12px;
       color: var(--muted);
+      white-space: nowrap;
     }
-
     .grid{display:grid; gap:12px}
     .card{
       background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
@@ -75,9 +73,7 @@
       border-bottom:1px solid var(--line);
       background: rgba(255,255,255,.02);
     }
-    .card .hd .h{
-      display:flex; flex-direction:column; gap:4px;
-    }
+    .card .hd .h{display:flex; flex-direction:column; gap:4px;}
     .card .hd .h .k{font-size:13px; color:var(--muted)}
     .card .hd .h .v{font-size:16px; font-weight:650}
     .card .bd{ padding: 12px 14px 14px; }
@@ -111,6 +107,10 @@
       background: rgba(251,113,133,.10);
       border-color: rgba(251,113,133,.35);
     }
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
 
     .list{display:grid; gap:10px}
     .item{
@@ -138,11 +138,7 @@
     .badge.warn{ border-color: rgba(251,191,36,.35); color: rgba(251,191,36,.95); background: rgba(251,191,36,.08) }
 
     /* Workout UI */
-    .workoutTop{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
+    .workoutTop{display:flex; flex-direction:column; gap:10px;}
     .progress{
       height:10px;
       border-radius:999px;
@@ -178,15 +174,8 @@
       color: var(--muted);
       background: rgba(255,255,255,.03);
     }
-    .entry{
-      margin-top: 14px;
-      display:grid;
-      gap:10px;
-    }
-    .field{
-      display:grid;
-      gap:6px;
-    }
+    .entry{ margin-top: 14px; display:grid; gap:10px; }
+    .field{ display:grid; gap:6px; }
     label{ font-size: 12px; color: var(--muted) }
     input, textarea, select{
       width:100%;
@@ -200,19 +189,26 @@
     }
     textarea{ min-height: 74px; resize: vertical; }
     .twocol{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-
-    .footerBar{
-      display:flex;
-      gap:10px;
-      margin-top: 12px;
-    }
-    .hint{
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.35;
-    }
+    .footerBar{ display:flex; gap:10px; margin-top: 12px; }
+    .hint{ margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.35; }
     .center{ text-align:center; }
+
+    /* History */
+    .spark{
+      width: 110px;
+      height: 34px;
+      border:1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255,255,255,.03);
+      overflow:hidden;
+      flex: 0 0 auto;
+    }
+    .histRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
 
     .toast{
       position: fixed;
@@ -246,6 +242,9 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- Import -->
+  <input id="importFile" type="file" accept="application/json" style="display:none" />
 
   <script src="app.js"></script>
 </body>
