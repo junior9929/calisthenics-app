@@ -523,6 +523,27 @@ function computeWorkoutBestByExercise(workout) {
   return out;
 }
 
+function deleteWorkoutById(workoutId) {
+  if (!workoutId) return;
+
+  const before = (PROGRESS.workout_history || []).length;
+  PROGRESS.workout_history = (PROGRESS.workout_history || []).filter(w => w.workout_id !== workoutId);
+
+  // Si la séance supprimée est aussi last_workout, on la "nettoie" intelligemment
+  if (PROGRESS.last_workout?.workout_id === workoutId) {
+    PROGRESS.last_workout.workout_id = null;
+    PROGRESS.last_workout.rounds = [];
+    PROGRESS.last_workout.circuit_plan = { items: [] };
+    PROGRESS.last_workout.completed = false;
+    PROGRESS.last_workout.paused = false;
+  }
+
+  setProgress(PROGRESS);
+
+  const after = (PROGRESS.workout_history || []).length;
+  toast(before !== after ? "Séance supprimée 🗑️" : "Séance introuvable");
+}
+
 /* ---------- App state ---------- */
 function ensureProgressShape(p) {
   p.schema_version ||= 1;
@@ -1841,6 +1862,7 @@ function renderWorkoutSummary(workout, { from } = {}) {
             <button class="ghost" id="btnBack">${from === "history" ? "Retour historique" : "Retour dashboard"}</button>
             <button class="primary" id="btnHistory">Historique</button>
             <button class="ghost" id="btnReplayFromSummary">Rejouer la même séance</button>
+            <button class="danger" id="btnDeleteWorkout">Supprimer</button>
           </div>
 
           <div class="grid" style="margin-top:12px;">
@@ -1882,6 +1904,18 @@ function renderWorkoutSummary(workout, { from } = {}) {
     renderWarmupPrompt({
       next: () => startWorkout({ resume: false, selectedExercises: selected, setup })
     });
+  };
+
+  $("#btnDeleteWorkout").onclick = () => {
+  const ok = confirm("Supprimer cette séance ? (Action irréversible)");
+  if (!ok) return;
+
+  const id = workout.workout_id;
+  deleteWorkoutById(id);
+
+  // Après suppression, retour logique
+  if (from === "history") renderHistory();
+  else renderDashboard();
   };
 }
 
@@ -1988,6 +2022,7 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
 
 
