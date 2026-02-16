@@ -186,7 +186,7 @@
           "levels": [
             {
               "id": "pullups_lvl1",
-              "title": "Tractions australiennes",
+              "title": "N1 : Tractions australiennes",
               "type": "reps",
               "validate": {
                 "reps": 15,
@@ -195,7 +195,7 @@
             },
             {
               "id": "pullups_lvl1bis",
-              "title": "Suspension",
+              "title": "N1b : Suspension",
               "type": "hold_sec",
               "validate": {
                 "sec": 30,
@@ -206,7 +206,7 @@
             },
             {
               "id": "pullups_lvl2",
-              "title": "Tractions avec élastique",
+              "title": "N2 : Tractions avec élastique",
               "type": "reps",
               "validate": {
                 "reps": 6,
@@ -216,7 +216,7 @@
             },
             {
               "id": "pullups_lvl3",
-              "title": "Tractions négatives",
+              "title": "N3 : Tractions négatives",
               "type": "negatives",
               "validate": {
                 "reps": 6,
@@ -227,7 +227,7 @@
             },
             {
               "id": "pullups_lvl4",
-              "title": "Tractions",
+              "title": "N4 : Tractions",
               "type": "reps",
               "validate": {
                 "reps": 10,
@@ -266,7 +266,7 @@
           "levels": [
             {
               "id": "pushups_lvl1",
-              "title": "Pompes mains surélevées",
+              "title": "N1 : Pompes mains surélevées",
               "type": "reps",
               "validate": {
                 "reps": 20,
@@ -275,7 +275,7 @@
             },
             {
               "id": "pushups_lvl2",
-              "title": "Pompes à genoux",
+              "title": "N2 : Pompes à genoux",
               "type": "reps",
               "validate": {
                 "reps": 20,
@@ -284,7 +284,7 @@
             },
             {
               "id": "pushups_lvl3",
-              "title": "Pompes négatives",
+              "title": "N3 : Pompes négatives",
               "type": "negatives",
               "validate": {
                 "reps": 12,
@@ -294,7 +294,7 @@
             },
             {
               "id": "pushups_lvl4",
-              "title": "Pompes",
+              "title": "N4 : Pompes",
               "type": "reps",
               "validate": {
                 "reps": 20,
@@ -315,7 +315,7 @@
           "levels": [
             {
               "id": "pistols_lvl1",
-              "title": "Demi-squats",
+              "title": "N1 : Demi-squats",
               "type": "reps",
               "validate": {
                 "reps": 20
@@ -323,7 +323,7 @@
             },
             {
               "id": "pistols_lvl2",
-              "title": "Squats profonds",
+              "title": "N2 : Squats profonds",
               "type": "reps",
               "validate": {
                 "reps": 20
@@ -331,7 +331,7 @@
             },
             {
               "id": "pistols_lvl3",
-              "title": "Pistol squats assistés",
+              "title": "N3 : Pistol squats assistés",
               "type": "reps_each_side",
               "validate": {
                 "reps": 10,
@@ -340,7 +340,7 @@
             },
             {
               "id": "pistols_lvl4",
-              "title": "Pistol squats",
+              "title": "N4 : Pistol squats",
               "type": "reps_each_side",
               "validate": {
                 "reps": 6
@@ -360,7 +360,7 @@
           "levels": [
             {
               "id": "plank_lvl1",
-              "title": "Gainage pieds écartés",
+              "title": "N1 : Gainage pieds écartés",
               "type": "hold_sec",
               "validate": {
                 "sec": 30
@@ -368,7 +368,7 @@
             },
             {
               "id": "plank_lvl2",
-              "title": "Gainage",
+              "title": "N2 : Gainage",
               "type": "hold_sec",
               "validate": {
                 "sec": 60,
@@ -389,7 +389,7 @@
           "levels": [
             {
               "id": "dips_lvl1",
-              "title": "Dips sur support bas jambes pliées",
+              "title": "N1 : Dips sur support bas jambes pliées",
               "type": "reps",
               "validate": {
                 "reps": 12
@@ -397,7 +397,7 @@
             },
             {
               "id": "dips_lvl2",
-              "title": "Dips sur support bas jambes tendues",
+              "title": "N2 : Dips sur support bas jambes tendues",
               "type": "reps",
               "validate": {
                 "reps": 12
@@ -405,7 +405,7 @@
             },
             {
               "id": "dips_lvl3",
-              "title": "Dips négatifs",
+              "title": "N3 : Dips négatifs",
               "type": "reps",
               "validate": {
                 "reps": 8
@@ -413,7 +413,7 @@
             },
             {
               "id": "dips_lvl4",
-              "title": "Dips",
+              "title": "N4 : Dips",
               "type": "reps",
               "validate": {
                 "reps": 12
@@ -433,7 +433,7 @@
           "levels": [
             {
               "id": "lsit_lvl1",
-              "title": "Se soulever en position assise",
+              "title": "N1 : Se soulever en position assise",
               "type": "hold_sec",
               "validate": {
                 "sec": 8
@@ -441,7 +441,7 @@
             },
             {
               "id": "lsit_lvl2",
-              "title": "Se soulever au sol jambes pliées",
+              "title": "N2 : Se soulever au sol jambes pliées",
               "type": "hold_sec",
               "validate": {
                 "sec": 8
@@ -449,7 +449,7 @@
             },
             {
               "id": "lsit_lvl2bis",
-              "title": "Relevés de jambes",
+              "title": "N2b : Relevés de jambes",
               "type": "reps",
               "validate": {
                 "reps": 10,
@@ -459,7 +459,7 @@
             },
             {
               "id": "lsit_lvl3",
-              "title": "Déplier les jambes",
+              "title": "N3 : Déplier les jambes",
               "type": "hold_sec",
               "validate": {
                 "sec": 5,
@@ -468,7 +468,7 @@
             },
             {
               "id": "lsit_lvl4",
-              "title": "L-sit",
+              "title": "N4 : L-sit",
               "type": "hold_sec",
               "validate": {
                 "sec": 10
@@ -551,5 +551,6 @@
     }
   ]
 }
+
 
 
