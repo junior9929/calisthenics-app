@@ -904,7 +904,6 @@ function runWarmups(warmupIds, onDone) {
                 <button class="danger" id="btnDoneAll">Terminer</button>
               </div>
 
-              <div class="hint center">Tu peux swiper gauche/droite (évite le bord gauche).</div>
             </div>
           </div>
         </div>
@@ -2143,6 +2142,7 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
 
 
