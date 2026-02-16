@@ -3,6 +3,7 @@ const LS_KEY = "calisthenics_progress_v1";
 
 /* ---------- Utils ---------- */
 const $ = (sel) => document.querySelector(sel);
+const ENABLE_SWIPE = false;
 
 function nowISO() { return new Date().toISOString(); }
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
@@ -251,10 +252,9 @@ function proposeLevelUps(program, progress, workout) {
 
 /* ---------- Swipe (4) ---------- */
 function attachSwipe(el, onLeft, onRight) {
+  if (!ENABLE_SWIPE) return;   // ✅ désactive tout
   let sx = 0, sy = 0, moved = false;
-
-  // iOS back gesture guard
-  const LEFT_EDGE_GUARD_PX = 40;
+  const LEFT_EDGE_GUARD_PX = 24;
 
   el.addEventListener("touchstart", (e) => {
     const t = e.touches[0];
@@ -268,7 +268,6 @@ function attachSwipe(el, onLeft, onRight) {
     const t = e.changedTouches[0];
     const dx = t.clientX - sx;
     const dy = t.clientY - sy;
-
     if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
 
     if (dx < 0) onLeft?.();
@@ -2090,6 +2089,7 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
 
 
