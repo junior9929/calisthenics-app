@@ -153,18 +153,30 @@
       border-radius:999px;
       transition: width .15s ease;
     }
+
+    /* animation visible change (1) */
     .workoutCard{
       border-radius: var(--r);
       border:1px solid var(--line);
       background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
       box-shadow: var(--shadow);
       padding: 14px;
-      min-height: 320px;
+      min-height: 330px;
       position: relative;
       overflow:hidden;
+      transform: translateY(0);
+      opacity: 1;
     }
+    .workoutCard.enter{
+      animation: cardEnter .18s ease-out;
+    }
+    @keyframes cardEnter{
+      from{ opacity:.35; transform: translateY(6px); }
+      to{ opacity:1; transform: translateY(0); }
+    }
+
     .workoutCard .sub{ color: var(--muted); font-size: 12.5px; margin-top:2px}
-    .workoutCard h2{ margin:0; font-size: 18px; letter-spacing:.2px}
+    .workoutCard h2{ margin:0; font-size: 19px; letter-spacing:.2px}
     .workoutCard .meta{ margin-top:10px; display:flex; gap:8px; flex-wrap:wrap }
     .workoutCard .meta .chip{
       font-size:11.5px;
@@ -174,6 +186,26 @@
       color: var(--muted);
       background: rgba(255,255,255,.03);
     }
+
+    .kpis{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .kpi{
+      padding:8px 10px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width: 120px;
+    }
+    .kpi .k{ font-size:11px; color: var(--muted); }
+    .kpi .v{ font-size:14px; font-weight:700; }
+
     .entry{ margin-top: 14px; display:grid; gap:10px; }
     .field{ display:grid; gap:6px; }
     label{ font-size: 12px; color: var(--muted) }
@@ -189,27 +221,73 @@
     }
     textarea{ min-height: 74px; resize: vertical; }
     .twocol{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-    .footerBar{ display:flex; gap:10px; margin-top: 12px; }
+    .footerBar{ display:flex; gap:10px; margin-top: 12px; flex-wrap:wrap; }
     .hint{ margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.35; }
     .center{ text-align:center; }
 
-    /* History */
-    .spark{
-      width: 110px;
-      height: 34px;
-      border:1px solid var(--line);
-      border-radius: 10px;
-      background: rgba(255,255,255,.03);
-      overflow:hidden;
-      flex: 0 0 auto;
+    /* quick controls (2) */
+    .quickRow{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .quickBtns{ display:flex; gap:8px; flex-wrap:wrap; }
+    .btnMini{
+      padding: 10px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 750;
     }
-    .histRow{
+
+    /* step list / timeline (5) */
+    .stepList{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top: 10px;
+    }
+    .stepPill{
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      color: var(--muted);
+      display:flex;
+      gap:6px;
+      align-items:center;
+    }
+    .stepPill.active{
+      border-color: rgba(94,234,212,.45);
+      color: rgba(94,234,212,.95);
+      background: rgba(94,234,212,.08);
+    }
+    .dot{
+      width:8px; height:8px; border-radius:999px;
+      background: rgba(255,255,255,.18);
+    }
+    .dot.done{ background: rgba(52,211,153,.75); }
+    .dot.active{ background: rgba(94,234,212,.85); }
+
+    /* Timer UI (3 + 8) */
+    .timerBox{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      border-radius: 14px;
+      padding: 12px;
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:12px;
+      gap:10px;
+    }
+    .timerTime{
+      font-size: 28px;
+      font-weight: 850;
+      letter-spacing:.5px;
+    }
+    .timerSub{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top:2px;
     }
 
+    /* Toast */
     .toast{
       position: fixed;
       left: 50%;
