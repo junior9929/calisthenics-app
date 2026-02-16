@@ -257,12 +257,7 @@
             {
               "kind": "current_level_main",
               "title_override": "Tractions (progression)"
-            },
-            {
-              "kind": "fixed_level",
-              "level_id": "pullups_lvl1bis",
-              "title_override": "Suspension"
-            }
+            },            
           ]
         },
         {
@@ -556,3 +551,4 @@
     }
   ]
 }
+
