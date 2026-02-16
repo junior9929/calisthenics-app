@@ -148,10 +148,11 @@ function getCircuitForPhase1(program, progress, selectedExerciseIds) {
     const currentLevelId = safeGet(progress, `state.${exId}.current_level_id`, f.levels?.[0]?.id);
     const circuitItems = f.circuit_items || [{ kind: "current_level_main" }];
 
+    // 1) items définis par circuit_items (main + éventuels aux)
     for (const ci of circuitItems) {
       if (ci.kind === "current_level_main") {
         const lvl = findLevel(f, currentLevelId) || f.levels?.[0];
-        items.push(makeWorkoutItem(exId, f.title, lvl, { titleOverride: ci.title_override }));
+        if (lvl) items.push(makeWorkoutItem(exId, f.title, lvl, { titleOverride: ci.title_override }));
       } else if (ci.kind === "fixed_level") {
         const lvl = findLevel(f, ci.level_id);
         if (lvl) items.push(makeWorkoutItem(exId, f.title, lvl, { titleOverride: ci.title_override }));
@@ -162,9 +163,28 @@ function getCircuitForPhase1(program, progress, selectedExerciseIds) {
         }
       }
     }
+
+    // 2) Règle spéciale : combo pullups niveau 1 (australiennes + suspension)
+    // => On ajoute la suspension uniquement quand le niveau courant est EXACTEMENT lvl1
+    if (exId === "pullups" && currentLevelId === "pullups_lvl1") {
+      const hang = findLevel(f, "pullups_lvl1bis");
+      if (hang) {
+        items.push(makeWorkoutItem(exId, f.title, hang, { titleOverride: "Suspension (combo niveau 1)" }));
+      }
+    }
   }
 
-  return { phaseId: phase.id, items };
+  // 3) Anti-doublons (protection si JSON ou règles ajoutent deux fois le même item)
+  const seen = new Set();
+  const dedup = [];
+  for (const it of items) {
+    const key = `${it.exercise_id}::${it.level_id}::${it.title}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    dedup.push(it);
+  }
+
+  return { phaseId: phase.id, items: dedup };
 }
 
 /* ---------- Validation + level up proposal ---------- */
@@ -1751,6 +1771,7 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
 
 
