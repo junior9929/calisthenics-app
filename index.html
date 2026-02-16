@@ -2,20 +2,250 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Calisthenics App (test)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Calisthenics — Phase 1</title>
+  <meta name="theme-color" content="#0b1220" />
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#111a2b;
+      --card:#0f172a;
+      --card2:#0b1324;
+      --text:#e6edf7;
+      --muted:#a7b4cc;
+      --line:rgba(255,255,255,.08);
+      --brand:#5eead4;
+      --brand2:#60a5fa;
+      --warn:#fbbf24;
+      --danger:#fb7185;
+      --ok:#34d399;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 30% -10%, rgba(96,165,250,.20), transparent 60%),
+                  radial-gradient(900px 700px at 90% 0%, rgba(94,234,212,.18), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+    }
+    .app{
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 18px 14px 28px;
+      padding-bottom: calc(28px + env(safe-area-inset-bottom));
+    }
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding: 8px 4px 14px;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:4px;
+    }
+    .title h1{ margin:0; font-size:18px; letter-spacing:.2px}
+    .title p{ margin:0; color:var(--muted); font-size:12.5px}
+    .pill{
+      padding: 8px 10px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .grid{display:grid; gap:12px}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid var(--line);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding: 14px 14px 10px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+    }
+    .card .hd .h{
+      display:flex; flex-direction:column; gap:4px;
+    }
+    .card .hd .h .k{font-size:13px; color:var(--muted)}
+    .card .hd .h .v{font-size:16px; font-weight:650}
+    .card .bd{ padding: 12px 14px 14px; }
+    .row{display:flex; gap:10px; align-items:center; justify-content:space-between}
+    .muted{color:var(--muted)}
+    .tiny{font-size:12px}
+    .btns{display:flex; flex-wrap:wrap; gap:10px}
+    button{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius: 14px;
+      padding: 12px 12px;
+      font-weight:650;
+      color: var(--text);
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      transition: transform .08s ease, background .12s ease, border-color .12s ease;
+    }
+    button:active{ transform: translateY(1px) }
+    button.primary{
+      background: linear-gradient(90deg, rgba(94,234,212,.20), rgba(96,165,250,.18));
+      border-color: rgba(94,234,212,.35);
+    }
+    button.ghost{
+      background: transparent;
+      border-color: var(--line);
+      color: var(--muted);
+    }
+    button.danger{
+      background: rgba(251,113,133,.10);
+      border-color: rgba(251,113,133,.35);
+    }
+
+    .list{display:grid; gap:10px}
+    .item{
+      padding:12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,.12);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .item .left{display:flex; flex-direction:column; gap:4px}
+    .item .name{font-weight:650}
+    .badge{
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      color: var(--muted);
+      white-space:nowrap;
+      background: rgba(255,255,255,.03);
+    }
+    .badge.ok{ border-color: rgba(52,211,153,.35); color: rgba(52,211,153,.95); background: rgba(52,211,153,.08) }
+    .badge.warn{ border-color: rgba(251,191,36,.35); color: rgba(251,191,36,.95); background: rgba(251,191,36,.08) }
+
+    /* Workout UI */
+    .workoutTop{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .progress{
+      height:10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      overflow:hidden;
+      border:1px solid var(--line);
+    }
+    .progress > div{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, rgba(94,234,212,.85), rgba(96,165,250,.85));
+      border-radius:999px;
+      transition: width .15s ease;
+    }
+    .workoutCard{
+      border-radius: var(--r);
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      box-shadow: var(--shadow);
+      padding: 14px;
+      min-height: 320px;
+      position: relative;
+      overflow:hidden;
+    }
+    .workoutCard .sub{ color: var(--muted); font-size: 12.5px; margin-top:2px}
+    .workoutCard h2{ margin:0; font-size: 18px; letter-spacing:.2px}
+    .workoutCard .meta{ margin-top:10px; display:flex; gap:8px; flex-wrap:wrap }
+    .workoutCard .meta .chip{
+      font-size:11.5px;
+      padding:6px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      color: var(--muted);
+      background: rgba(255,255,255,.03);
+    }
+    .entry{
+      margin-top: 14px;
+      display:grid;
+      gap:10px;
+    }
+    .field{
+      display:grid;
+      gap:6px;
+    }
+    label{ font-size: 12px; color: var(--muted) }
+    input, textarea, select{
+      width:100%;
+      background: rgba(0,0,0,.22);
+      border:1px solid var(--line);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 12px;
+      font-size: 15px;
+      outline:none;
+    }
+    textarea{ min-height: 74px; resize: vertical; }
+    .twocol{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+
+    .footerBar{
+      display:flex;
+      gap:10px;
+      margin-top: 12px;
+    }
+    .hint{
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .center{ text-align:center; }
+
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      max-width: 520px;
+      width: calc(100% - 24px);
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(15,23,42,.92);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      display:none;
+      z-index: 50;
+    }
+  </style>
 </head>
 <body>
-  <h1>Calisthenics App — Test</h1>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>Calisthenics — Phase 1</h1>
+        <p id="subtitle">Chargement…</p>
+      </div>
+      <div class="pill" id="pill">Offline OK</div>
+    </header>
 
-  <p id="status">Chargement…</p>
-
-  <div style="margin-top: 12px;">
-    <button id="inc">+1 séance</button>
-    <button id="reset">Reset</button>
+    <main id="root"></main>
   </div>
 
-  <pre id="debug" style="margin-top: 12px; white-space: pre-wrap;"></pre>
+  <div class="toast" id="toast"></div>
 
   <script src="app.js"></script>
 </body>
