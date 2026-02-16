@@ -382,6 +382,7 @@ function ensureProgressShape(p) {
     circuit_plan: { items: [] },
     rounds: [],
     completed: false,
+    paused: false,
     setup: null
   };
 
@@ -683,6 +684,45 @@ function renderTestFlow({ mode }) {
   renderTestScreen(ctx);
 }
 
+function testMaxLevelIndexReached(ctx, exId) {
+  // si on a déjà des résultats sur cet exercice, on retourne le dernier index de niveau atteint,
+  // sinon 0.
+  const res = ctx.results?.[exId];
+  if (!res || !res.length) return 0;
+
+  // on veut le dernier niveau vu dans le programme (pas juste le dernier push)
+  const phase = findPhase(PROGRAM, PROGRESS.app.active_phase_id);
+  const f = findFundamental(phase, exId);
+  const lastLevelId = res[res.length - 1].level_id;
+  const idx = levelIndex(f, lastLevelId);
+  return Math.max(0, idx);
+}
+
+function testGoBack(ctx) {
+  const phase = findPhase(PROGRAM, PROGRESS.app.active_phase_id);
+  const order = phase.fundamentals_order || [];
+
+  // 1) reculer d'un niveau si possible
+  if (ctx.levelIdx > 0) {
+    ctx.levelIdx--;
+    return true;
+  }
+
+  // 2) reculer d'un exercice si possible
+  if (ctx.exIdx > 0) {
+    ctx.exIdx--;
+
+    // revenir au "dernier niveau atteint" sur l'exercice précédent
+    const prevExId = order[ctx.exIdx];
+    ctx.levelIdx = testMaxLevelIndexReached(ctx, prevExId);
+
+    return true;
+  }
+
+  // 3) on est tout au début -> impossible de revenir
+  return false;
+}
+
 function renderTestScreen(ctx) {
   const phase = findPhase(PROGRAM, PROGRESS.app.active_phase_id);
   const order = phase.fundamentals_order || [];
@@ -732,9 +772,9 @@ function renderTestScreen(ctx) {
   attachSwipe($("#swipeArea"), () => $("#btnPass")?.click(), () => $("#btnBack")?.click());
 
   $("#btnBack").onclick = () => {
-    if (ctx.levelIdx > 0) { ctx.levelIdx--; return renderTestScreen(ctx); }
-    if (ctx.exIdx > 0) { ctx.exIdx--; ctx.levelIdx = 0; return renderTestScreen(ctx); }
-    renderDashboard();
+    const ok = testGoBack(ctx);
+    if (!ok) return renderDashboard();
+    renderTestScreen(ctx);
   };
 
   $("#btnPass").onclick = () => {
@@ -981,8 +1021,16 @@ function renderWorkoutScreen(workout, nav) {
   }
 
   $("#btnDash").onclick = () => {
+    const ok = confirm("Quitter la séance ? Tu pourras la reprendre ensuite.");
+    if (!ok) return;
+
+    workout.paused = true;
+    workout.completed = false;
+
     PROGRESS.last_workout = deepClone(workout);
     setProgress(PROGRESS);
+
+    toast("Séance mise en pause");
     renderDashboard();
   };
 
@@ -1125,6 +1173,8 @@ function dashboardCards() {
     `;
   }).join("");
 
+  const canResume = !!(PROGRESS.last_workout?.workout_id && PROGRESS.last_workout?.completed === false);
+  const isPaused = !!(PROGRESS.last_workout?.paused);
   const canReplay = !!(PROGRESS.last_workout?.completed && PROGRESS.last_workout?.circuit_plan?.items?.length);
 
   return `
@@ -1140,7 +1190,8 @@ function dashboardCards() {
         <div class="bd">
           <div class="btns">
             <button class="primary" id="btnStart">${initialDone ? "Configurer & lancer une séance" : "Configurer & faire le test initial"}</button>
-            ${PROGRESS.last_workout?.workout_id && !PROGRESS.last_workout.completed ? `<button id="btnResume">Reprendre la séance</button>` : ""}
+            ${canResume ? `<button id="btnResume">${isPaused ? "Reprendre la séance (pause)" : "Reprendre la séance"}</button>` : ""}
+            ${canResume ? `<button class="danger" id="btnAbandon">Abandonner</button>` : ""}
             <button class="ghost" id="btnTest">${initialDone ? "Configurer & refaire un test" : "Configurer & test initial"}</button>
             <button class="ghost" id="btnReplay" ${canReplay ? "" : "disabled"}>Rejouer la même séance</button>
             <button class="ghost" id="btnExport">Exporter</button>
@@ -1174,6 +1225,22 @@ function renderDashboard() {
   $("#btnStart").onclick = () => {
     // Setup then warmup then either test or workout
     renderSessionSetup({ mode: initialDone ? "workout" : "test" });
+  };
+
+  const btnAbandon = $("#btnAbandon");
+  if (btnAbandon) btnAbandon.onclick = () => {
+    const ok = confirm("Abandonner la séance en cours ? (Elle ne sera pas ajoutée à l’historique)");
+    if (!ok) return;
+
+    PROGRESS.last_workout.workout_id = null;
+    PROGRESS.last_workout.rounds = [];
+    PROGRESS.last_workout.circuit_plan = { items: [] };
+    PROGRESS.last_workout.completed = false;
+    PROGRESS.last_workout.paused = false;
+
+    setProgress(PROGRESS);
+    toast("Séance abandonnée");
+    renderDashboard();
   };
 
   const btnResume = $("#btnResume");
@@ -1243,3 +1310,4 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
