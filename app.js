@@ -16,6 +16,55 @@ function toast(msg) {
   toast._t = setTimeout(() => (el.style.display = "none"), 2200);
 }
 
+/* ---------- Beeps (Web Audio) ---------- */
+let AUDIO_CTX = null;
+
+function ensureAudio() {
+  if (!AUDIO_CTX) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    AUDIO_CTX = new Ctx();
+  }
+  // iOS: il faut parfois resume() après un geste utilisateur
+  if (AUDIO_CTX.state === "suspended") AUDIO_CTX.resume().catch(() => {});
+  return AUDIO_CTX;
+}
+
+function beep({ freq = 880, durationMs = 120, volume = 0.05, type = "sine" } = {}) {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.type = type;
+  osc.frequency.value = freq;
+
+  // petite enveloppe pour éviter les "clicks"
+  const now = ctx.currentTime;
+  const dur = durationMs / 1000;
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start(now);
+  osc.stop(now + dur + 0.02);
+}
+
+function restCountdownBeep(t) {
+  // t = secondes restantes
+  // 3-2-1 : tone plus grave, "GO" : tone plus aigu
+  if (!PROGRESS?.settings?.enable_beeps) return;
+  if (t === 3) beep({ freq: 520, durationMs: 110, volume: 0.06, type: "sine" });
+  if (t === 2) beep({ freq: 520, durationMs: 110, volume: 0.06, type: "sine" });
+  if (t === 1) beep({ freq: 520, durationMs: 110, volume: 0.06, type: "sine" });
+  if (t === 0) beep({ freq: 880, durationMs: 180, volume: 0.08, type: "sine" });
+}
+
 function safeGet(obj, path, fallback = null) {
   try {
     return path.split(".").reduce((a, k) => (a && a[k] !== undefined ? a[k] : undefined), obj) ?? fallback;
@@ -559,6 +608,8 @@ function ensureProgressShape(p) {
     warmup_slot_choices: { pull: WARMUP_SLOTS.pull[0], push: WARMUP_SLOTS.push[0] },
     last_session_setup: null
   };
+
+  p.settings.enable_beeps ??= true;
 
   p.last_workout ||= {
     workout_id: null,
@@ -1197,7 +1248,8 @@ function hideRestOverlay() {
 function runRestTimer(seconds, onDone) {
   const el = $("#restHint");
   if (!el) return onDone?.();
-
+  ensureAudio();
+  
   clearInterval(restInterval);
   restRunning = false;
 
@@ -1214,6 +1266,8 @@ function runRestTimer(seconds, onDone) {
 
   restInterval = setInterval(() => {
     t--;
+    // bips à 3-2-1 puis GO
+    if (t <= 3 && t >= 0) restCountdownBeep(t);
 
     if (t <= 0) {
       clearInterval(restInterval);
@@ -2089,6 +2143,7 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
 
 
