@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "app": {
+    "active_program_id": "programme.json",
+    "active_phase_id": "phase1_bases"
+  },
+  "state": {
+    "pullups": {
+      "current_level_id": "pullups_lvl1",
+      "notes": "",
+      "last_updated_at": null,
+      "baseline": {
+        "main": { "type": "reps", "value": null },
+        "aux": { "type": "hold_sec", "value": null }
+      }
+    },
+    "pushups": {
+      "current_level_id": "pushups_lvl1",
+      "notes": "",
+      "last_updated_at": null,
+      "baseline": { "main": { "type": "reps", "value": null } }
+    },
+    "pistols": {
+      "current_level_id": "pistols_lvl1",
+      "notes": "",
+      "last_updated_at": null,
+      "baseline": { "main": { "type": "reps", "value": null } }
+    },
+    "plank": {
+      "current_level_id": "plank_lvl1",
+      "notes": "",
+      "last_updated_at": null,
+      "baseline": { "main": { "type": "hold_sec", "value": null } }
+    },
+    "dips": {
+      "current_level_id": "dips_lvl1",
+      "notes": "",
+      "last_updated_at": null,
+      "baseline": { "main": { "type": "reps", "value": null } }
+    },
+    "lsit": {
+      "current_level_id": "lsit_lvl1",
+      "notes": "",
+      "last_updated_at": null,
+      "baseline": {
+        "main": { "type": "hold_sec", "value": null },
+        "aux": { "type": "reps", "value": null }
+      }
+    }
+  },
+  "tests": {
+    "initial_test": {
+      "performed_at": null,
+      "results": {}
+    }
+  },
+  "last_workout": {
+    "workout_id": null,
+    "performed_at": null,
+    "phase_id": "phase1_bases",
+    "warmup_ids": [],
+    "session_rules": {
+      "rounds": 4,
+      "rest_between_exercises_sec": 60,
+      "rest_between_rounds_sec": 120
+    },
+    "circuit_plan": {
+      "items": []
+    },
+    "rounds": []
+  },
+  "workout_history": []
+}

@@ -1,0 +1,558 @@
+{
+  "warmups": [
+    {
+      "id": "warmup_upper_5min",
+      "title": "Échauffement haut du corps",
+      "max_duration_min": 5,
+      "tags": ["upper", "base"],
+      "steps": [
+        {
+          "id": "wrists_circles",
+          "type": "reps_both_directions",
+          "title": "Moulinets poignets",
+          "reps_min": 10,
+          "reps_max": 15,
+          "unit": "par sens"
+        },
+        {
+          "id": "elbows_circles",
+          "type": "reps_both_directions",
+          "title": "Moulinets coudes",
+          "reps_min": 10,
+          "reps_max": 15,
+          "unit": "par sens"
+        },
+        {
+          "id": "shoulders_circles",
+          "type": "reps_both_directions",
+          "title": "Moulinets épaules",
+          "reps_min": 10,
+          "reps_max": 15,
+          "unit": "par sens"
+        },
+        {
+          "id": "trunk_twists",
+          "type": "reps_each_side",
+          "title": "Torsions de buste",
+          "reps_min": 10,
+          "reps_max": 15,
+          "unit": "par côté"
+        },
+        {
+          "id": "wrist_extensions",
+          "type": "reps_each_angle",
+          "title": "Extensions de poignets",
+          "reps": 5,
+          "unit": "par angle"
+        },
+        {
+          "id": "wrist_flexions",
+          "type": "reps_each_angle",
+          "title": "Flexions de poignets",
+          "reps": 5,
+          "unit": "par angle"
+        },
+        {
+          "id": "pull_exercise",
+          "type": "exercise_slot",
+          "title": "Exercice pull",
+          "reps_min": 10,
+          "reps_max": 15,
+          "slot": "pull"
+        },
+        {
+          "id": "push_exercise",
+          "type": "exercise_slot",
+          "title": "Exercice push",
+          "reps_min": 15,
+          "reps_max": 20,
+          "slot": "push"
+        },
+        {
+          "id": "abs_block",
+          "type": "conditional",
+          "title": "Exercice abdos",
+          "default": {
+            "id": "plank",
+            "type": "timer",
+            "title": "Gainage",
+            "duration_sec": 30
+          },
+          "rules": [
+            {
+              "if_tags_any": ["skill_drapeau"],
+              "use": {
+                "id": "side_plank",
+                "type": "timer_each_side",
+                "title": "Gainage côté",
+                "duration_sec": 30,
+                "unit": "par côté"
+              }
+            },
+            {
+              "if_tags_any": ["skill_l_sit"],
+              "use": {
+                "id": "leg_raises",
+                "type": "reps",
+                "title": "Montée de jambes",
+                "reps_min": 10,
+                "reps_max": 15
+              }
+            },
+            {
+              "if_tags_any": ["skill_front_lever"],
+              "use": {
+                "id": "hollow_boat",
+                "type": "timer",
+                "title": "Bateau",
+                "duration_sec": 30
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "warmup_lower_3min",
+      "title": "Échauffement bas du corps",
+      "max_duration_min": 3,
+      "tags": ["lower", "base"],
+      "steps": [
+        {
+          "id": "calf_raises",
+          "type": "timer",
+          "title": "Montée de mollets",
+          "duration_sec": 30
+        },
+        {
+          "id": "toe_raises",
+          "type": "timer",
+          "title": "Montée d'orteils",
+          "duration_sec": 30
+        },
+        {
+          "id": "squats",
+          "type": "timer",
+          "title": "Squats",
+          "duration_sec": 30
+        },
+        {
+          "id": "cossack_lunges",
+          "type": "timer",
+          "title": "Fentes cosaques alternées",
+          "duration_sec": 30
+        },
+        {
+          "id": "alternating_lunges",
+          "type": "timer",
+          "title": "Fentes alternées",
+          "duration_sec": 30
+        },
+        {
+          "id": "lying_knee_raises",
+          "type": "timer",
+          "title": "Montée de genoux allongé",
+          "duration_sec": 30
+        }
+      ]
+    }
+  ],
+  "phases": [
+    {
+      "id": "phase1_bases",
+      "title": "Phase 1 : Bien gérer les bases",
+      "objective": "Apprendre à maîtriser les 6 exercices fondamentaux",
+      "fundamentals_order": ["pullups", "pushups", "pistols", "plank", "dips", "lsit"],
+      "session_rules": {
+        "format": "circuit",
+        "rounds": 4,
+        "rest_between_exercises_sec": {
+          "min": 45,
+          "max": 60
+        },
+        "rest_between_rounds_sec": 120,
+        "validation_reference": "round1_when_fresh"
+      },
+      "fallback_rules": {
+        "reps_threshold": 3,
+        "hold_threshold_sec": 5,
+        "prompt_for_fallback": true,
+        "description": "Si <= 3 reps (ou <= 5 sec pour un hold), proposer de compléter avec le niveau précédent."
+      },
+      "fundamentals": [
+        {
+          "id": "pullups",
+          "title": "Tractions",
+          "levels": [
+            {
+              "id": "pullups_lvl1",
+              "title": "Tractions australiennes",
+              "type": "reps",
+              "validate": {
+                "reps": 15,
+                "note": "Presque à l'horizontale par rapport au support"
+              }
+            },
+            {
+              "id": "pullups_lvl1bis",
+              "title": "Suspension",
+              "type": "hold_sec",
+              "validate": {
+                "sec": 30,
+                "note": "Confortablement, sans glisser"
+              },
+              "is_auxiliary": true,
+              "required_with": ["pullups_lvl1"]
+            },
+            {
+              "id": "pullups_lvl2",
+              "title": "Tractions avec élastique",
+              "type": "reps",
+              "validate": {
+                "reps": 6,
+                "note": "Optionnel"
+              },
+              "optional": true
+            },
+            {
+              "id": "pullups_lvl3",
+              "title": "Tractions négatives",
+              "type": "negatives",
+              "validate": {
+                "reps": 6,
+                "each_rep_min_sec": 10,
+                "pause_anywhere_sec": 2,
+                "note": "Être capable de stopper 2-3 secondes la descente en tout point"
+              }
+            },
+            {
+              "id": "pullups_lvl4",
+              "title": "Tractions",
+              "type": "reps",
+              "validate": {
+                "reps": 10,
+                "note": "Amplitude complète"
+              }
+            }
+          ],
+          "combos": [
+            {
+              "id": "pullups_combo_lvl1_required",
+              "title": "Combo niveau 1 (obligatoire)",
+              "when_level_is": "pullups_lvl1",
+              "items": [
+                {
+                  "kind": "level",
+                  "level_id": "pullups_lvl1"
+                },
+                {
+                  "kind": "level",
+                  "level_id": "pullups_lvl1bis"
+                }
+              ],
+              "validate_all": true
+            }
+          ],
+          "circuit_items": [
+            {
+              "kind": "current_level_main",
+              "title_override": "Tractions (progression)"
+            },
+            {
+              "kind": "fixed_level",
+              "level_id": "pullups_lvl1bis",
+              "title_override": "Suspension"
+            }
+          ]
+        },
+        {
+          "id": "pushups",
+          "title": "Pompes",
+          "levels": [
+            {
+              "id": "pushups_lvl1",
+              "title": "Pompes mains surélevées",
+              "type": "reps",
+              "validate": {
+                "reps": 20,
+                "note": "Support bas, corps presque à l'horizontal"
+              }
+            },
+            {
+              "id": "pushups_lvl2",
+              "title": "Pompes à genoux",
+              "type": "reps",
+              "validate": {
+                "reps": 20,
+                "note": "Amplitude complète"
+              }
+            },
+            {
+              "id": "pushups_lvl3",
+              "title": "Pompes négatives",
+              "type": "negatives",
+              "validate": {
+                "reps": 12,
+                "pause_anywhere_sec": 2,
+                "note": "Amplitude complète, stopper 2-3 secondes possible en tout point"
+              }
+            },
+            {
+              "id": "pushups_lvl4",
+              "title": "Pompes",
+              "type": "reps",
+              "validate": {
+                "reps": 20,
+                "note": "Amplitude complète"
+              }
+            }
+          ],
+          "circuit_items": [
+            {
+              "kind": "current_level_main",
+              "title_override": "Pompes (progression)"
+            }
+          ]
+        },
+        {
+          "id": "pistols",
+          "title": "Pistol squats",
+          "levels": [
+            {
+              "id": "pistols_lvl1",
+              "title": "Demi-squats",
+              "type": "reps",
+              "validate": {
+                "reps": 20
+              }
+            },
+            {
+              "id": "pistols_lvl2",
+              "title": "Squats profonds",
+              "type": "reps",
+              "validate": {
+                "reps": 20
+              }
+            },
+            {
+              "id": "pistols_lvl3",
+              "title": "Pistol squats assistés",
+              "type": "reps_each_side",
+              "validate": {
+                "reps": 10,
+                "note": "Avec aussi peu d'assistance que possible"
+              }
+            },
+            {
+              "id": "pistols_lvl4",
+              "title": "Pistol squats",
+              "type": "reps_each_side",
+              "validate": {
+                "reps": 6
+              }
+            }
+          ],
+          "circuit_items": [
+            {
+              "kind": "current_level_main",
+              "title_override": "Pistol squats (progression)"
+            }
+          ]
+        },
+        {
+          "id": "plank",
+          "title": "Gainage",
+          "levels": [
+            {
+              "id": "plank_lvl1",
+              "title": "Gainage pieds écartés",
+              "type": "hold_sec",
+              "validate": {
+                "sec": 30
+              }
+            },
+            {
+              "id": "plank_lvl2",
+              "title": "Gainage",
+              "type": "hold_sec",
+              "validate": {
+                "sec": 60,
+                "note": "Confortablement"
+              }
+            }
+          ],
+          "circuit_items": [
+            {
+              "kind": "current_level_main",
+              "title_override": "Gainage (progression)"
+            }
+          ]
+        },
+        {
+          "id": "dips",
+          "title": "Dips",
+          "levels": [
+            {
+              "id": "dips_lvl1",
+              "title": "Dips sur support bas jambes pliées",
+              "type": "reps",
+              "validate": {
+                "reps": 12
+              }
+            },
+            {
+              "id": "dips_lvl2",
+              "title": "Dips sur support bas jambes tendues",
+              "type": "reps",
+              "validate": {
+                "reps": 12
+              }
+            },
+            {
+              "id": "dips_lvl3",
+              "title": "Dips négatifs",
+              "type": "reps",
+              "validate": {
+                "reps": 8
+              }
+            },
+            {
+              "id": "dips_lvl4",
+              "title": "Dips",
+              "type": "reps",
+              "validate": {
+                "reps": 12
+              }
+            }
+          ],
+          "circuit_items": [
+            {
+              "kind": "current_level_main",
+              "title_override": "Dips (progression)"
+            }
+          ]
+        },
+        {
+          "id": "lsit",
+          "title": "L-sit",
+          "levels": [
+            {
+              "id": "lsit_lvl1",
+              "title": "Se soulever en position assise",
+              "type": "hold_sec",
+              "validate": {
+                "sec": 8
+              }
+            },
+            {
+              "id": "lsit_lvl2",
+              "title": "Se soulever au sol jambes pliées",
+              "type": "hold_sec",
+              "validate": {
+                "sec": 8
+              }
+            },
+            {
+              "id": "lsit_lvl2bis",
+              "title": "Relevés de jambes",
+              "type": "reps",
+              "validate": {
+                "reps": 10,
+                "note": "Mains au-delà des genoux"
+              },
+              "is_auxiliary": true
+            },
+            {
+              "id": "lsit_lvl3",
+              "title": "Déplier les jambes",
+              "type": "hold_sec",
+              "validate": {
+                "sec": 5,
+                "note": "Jambes dépliées"
+              }
+            },
+            {
+              "id": "lsit_lvl4",
+              "title": "L-sit",
+              "type": "hold_sec",
+              "validate": {
+                "sec": 10
+              }
+            }
+          ],
+          "combos": [
+            {
+              "id": "lsit_combo_lvl2_plus",
+              "title": "Combo (L-sit + relevés de jambes)",
+              "when_level_is_or_above": "lsit_lvl2",
+              "items": [
+                {
+                  "kind": "current_level_main"
+                },
+                {
+                  "kind": "level",
+                  "level_id": "lsit_lvl2bis"
+                }
+              ],
+              "validate_all": false
+            }
+          ],
+          "circuit_items": [
+            {
+              "kind": "current_level_main",
+              "title_override": "L-sit (progression)"
+            },
+            {
+              "kind": "conditional_fixed_level",
+              "level_id": "lsit_lvl2bis",
+              "only_if_level_is_or_above": "lsit_lvl2",
+              "title_override": "Relevés de jambes"
+            }
+          ]
+        }
+      ],
+      "phase_exit_criteria": {
+        "pullups": {
+          "level": "pullups_lvl4",
+          "reps": 10
+        },
+        "pushups": {
+          "level": "pushups_lvl4",
+          "reps": 20
+        },
+        "pistols": {
+          "either": [
+            {
+              "level": "pistols_lvl4",
+              "reps_each_side": 10
+            },
+            {
+              "level": "pistols_lvl3",
+              "reps_each_side": 10
+            }
+          ]
+        },
+        "plank": {
+          "level": "plank_lvl2",
+          "sec": 60
+        },
+        "dips": {
+          "level": "dips_lvl4",
+          "reps": 12
+        },
+        "lsit": {
+          "either": [
+            {
+              "level": "lsit_lvl4",
+              "sec": 10
+            },
+            {
+              "level": "lsit_lvl2",
+              "sec": 10
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
