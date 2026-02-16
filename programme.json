@@ -257,7 +257,7 @@
             {
               "kind": "current_level_main",
               "title_override": "Tractions (progression)"
-            },            
+            }            
           ]
         },
         {
@@ -551,4 +551,5 @@
     }
   ]
 }
+
 
