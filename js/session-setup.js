@@ -12,7 +12,7 @@ export function defaultSelectionForFocus(focus) {
   return ["pullups","pushups","pistols","plank","dips","lsit"];
 }
 
-export function renderSessionSetup({ mode }) {
+export async function renderSessionSetup({ mode }) {
   const PROGRAM = getProgram();
   const PROGRESS = getProgress();
   const phase = findPhase(PROGRAM, PROGRESS.app.active_phase_id);
@@ -51,8 +51,8 @@ export function renderSessionSetup({ mode }) {
         </div>
         <div class="bd">
           <div class="btns">
-            <button class="ghost" id="btnBack">Retour</button>
-            <button class="primary" id="btnGo">${mode === "test" ? "Aller au test" : "Démarrer"}</button>
+            <button class="ghost" id="btnBack" disabled>Retour</button>
+            <button class="primary" id="btnGo" disabled>${mode === "test" ? "Aller au test" : "Démarrer"}</button>
           </div>
           <p class="hint">
             L'échauffement est proposé <b>avant</b> le test et avant la séance.
@@ -69,9 +69,9 @@ export function renderSessionSetup({ mode }) {
         </div>
         <div class="bd">
           <div class="btns">
-            <button class="${focus==="pull"?"primary":""}" id="focusPull">Pull</button>
-            <button class="${focus==="push"?"primary":""}" id="focusPush">Push</button>
-            <button class="${focus==="all"?"primary":""}" id="focusAll">Tout</button>
+            <button class="${focus==="pull"?"primary":""}" id="focusPull" disabled>Pull</button>
+            <button class="${focus==="push"?"primary":""}" id="focusPush" disabled>Push</button>
+            <button class="${focus==="all"?"primary":""}" id="focusAll" disabled>Tout</button>
           </div>
           <p class="hint">Le focus sert de présélection. Tu peux cocher/décocher.</p>
         </div>
@@ -116,13 +116,30 @@ export function renderSessionSetup({ mode }) {
   `);
 
   // Import functions dynamically to avoid circular dependencies
-  Promise.all([
-    import('./dashboard.js'),
-    import('./warmup.js'),
-    import('./test-flow.js'),
-    import('./workout.js')
-  ]).then(([{ renderDashboard }, { renderWarmupPrompt }, { renderTestFlow }, { startWorkout }]) => {
-    $("#btnBack").onclick = () => renderDashboard();
+  try {
+    const [{ renderDashboard }, { renderWarmupPrompt }, { renderTestFlow }, { startWorkout }] = await Promise.all([
+      import('./dashboard.js'),
+      import('./warmup.js'),
+      import('./test-flow.js'),
+      import('./workout.js')
+    ]);
+
+    // Enable buttons after modules are loaded
+    const btnBack = $("#btnBack");
+    const btnGo = $("#btnGo");
+    const focusPull = $("#focusPull");
+    const focusPush = $("#focusPush");
+    const focusAll = $("#focusAll");
+    
+    if (btnBack) btnBack.disabled = false;
+    if (btnGo) btnGo.disabled = false;
+    if (focusPull) focusPull.disabled = false;
+    if (focusPush) focusPush.disabled = false;
+    if (focusAll) focusAll.disabled = false;
+
+    if (btnBack) {
+      btnBack.onclick = () => renderDashboard();
+    }
 
     const setFocusAndDefaults = (newFocus) => {
       const defaults = defaultSelectionForFocus(newFocus);
@@ -135,28 +152,33 @@ export function renderSessionSetup({ mode }) {
       renderSessionSetup({ mode });
     };
 
-    $("#focusPull").onclick = () => setFocusAndDefaults("pull");
-    $("#focusPush").onclick = () => setFocusAndDefaults("push");
-    $("#focusAll").onclick  = () => setFocusAndDefaults("all");
+    if (focusPull) focusPull.onclick = () => setFocusAndDefaults("pull");
+    if (focusPush) focusPush.onclick = () => setFocusAndDefaults("push");
+    if (focusAll) focusAll.onclick = () => setFocusAndDefaults("all");
 
-    $("#btnGo").onclick = () => {
-      const selectedExercises = [];
-      for (const cb of $("#exList").querySelectorAll("input[type=checkbox][data-ex]")) {
-        if (cb.checked) selectedExercises.push(cb.getAttribute("data-ex"));
-      }
-      if (!selectedExercises.length) { toast("Choisis au moins 1 exercice"); return; }
-
-      PROGRESS.settings.warmup_slot_choices = { pull: $("#slotPull").value, push: $("#slotPush").value };
-      const focusNow = PROGRESS.settings.last_session_setup?.focus || "all";
-      PROGRESS.settings.last_session_setup = { focus: focusNow, selectedExercises };
-      saveProgress(PROGRESS);
-
-      renderWarmupPrompt({
-        next: () => {
-          if (mode === "test") renderTestFlow({ mode: initialDone ? "retest" : "initial" });
-          else startWorkout({ resume: false, selectedExercises, setup: PROGRESS.settings.last_session_setup });
+    if (btnGo) {
+      btnGo.onclick = () => {
+        const selectedExercises = [];
+        for (const cb of $("#exList").querySelectorAll("input[type=checkbox][data-ex]")) {
+          if (cb.checked) selectedExercises.push(cb.getAttribute("data-ex"));
         }
-      });
-    };
-  });
+        if (!selectedExercises.length) { toast("Choisis au moins 1 exercice"); return; }
+
+        PROGRESS.settings.warmup_slot_choices = { pull: $("#slotPull").value, push: $("#slotPush").value };
+        const focusNow = PROGRESS.settings.last_session_setup?.focus || "all";
+        PROGRESS.settings.last_session_setup = { focus: focusNow, selectedExercises };
+        saveProgress(PROGRESS);
+
+        renderWarmupPrompt({
+          next: () => {
+            if (mode === "test") renderTestFlow({ mode: initialDone ? "retest" : "initial" });
+            else startWorkout({ resume: false, selectedExercises, setup: PROGRESS.settings.last_session_setup });
+          }
+        });
+      };
+    }
+  } catch (err) {
+    console.error("Erreur lors du chargement des modules:", err);
+    toast("Erreur de chargement: " + err.message);
+  }
 }
