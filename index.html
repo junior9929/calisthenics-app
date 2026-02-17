@@ -165,7 +165,6 @@
       transition: width .15s ease;
     }
 
-    /* animation visible change */
     .workoutCard{
       border-radius: var(--r);
       border:1px solid var(--line);
@@ -177,6 +176,9 @@
       overflow:hidden;
       transform: translateY(0);
       opacity: 1;
+
+      /* IMPORTANT: laisse de la place pour la barre sticky */
+      padding-bottom: calc(14px + 84px + env(safe-area-inset-bottom));
     }
     .workoutCard.enter{
       animation: cardEnter .18s ease-out;
@@ -221,7 +223,6 @@
     .field{ display:grid; gap:7px; }
     label{ font-size: 14px; color: var(--muted); }
 
-    /* Important iOS: 16px inputs to avoid zoom */
     input, textarea, select{
       width:100%;
       background: rgba(0,0,0,.22);
@@ -229,55 +230,40 @@
       color: var(--text);
       border-radius: 12px;
       padding: 12px 12px;
-      font-size: 16px;
+      font-size: 16px; /* iOS: évite le zoom */
       outline:none;
     }
     textarea{ min-height: 74px; resize: vertical; }
     .twocol{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-    .footerBar{ display:flex; gap:10px; margin-top: 12px; flex-wrap:wrap; }
+
+    /* ====== STICKY FOOTER BAR ======
+       Reste visible en bas de la carte sur iPhone (et desktop aussi).
+    */
+    .footerBar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+
+      position: sticky;
+      bottom: calc(10px + env(safe-area-inset-bottom));
+      z-index: 10;
+
+      margin-top: 14px;
+      padding: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(15,23,42,.88);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .footerBar button{
+      flex: 1 1 120px; /* gros boutons et équilibrés */
+      min-height: 48px;
+      font-size: 15px;
+    }
+
     .hint{ margin-top: 10px; color: var(--muted); font-size: 14px; line-height: 1.4; }
     .center{ text-align:center; }
-
-    /* quick controls */
-    .quickRow{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    .quickBtns{ display:flex; gap:8px; flex-wrap:wrap; }
-    .btnMini{
-      padding: 10px 10px;
-      min-height: 40px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 800;
-    }
-
-    /* step list / timeline */
-    .stepList{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-top: 10px;
-    }
-    .stepPill{
-      font-size: 13px;
-      padding: 7px 9px;
-      border-radius: 999px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.02);
-      color: var(--muted);
-      display:flex;
-      gap:6px;
-      align-items:center;
-    }
-    .stepPill.active{
-      border-color: rgba(94,234,212,.45);
-      color: rgba(94,234,212,.95);
-      background: rgba(94,234,212,.08);
-    }
-    .dot{
-      width:8px; height:8px; border-radius:999px;
-      background: rgba(255,255,255,.18);
-    }
-    .dot.done{ background: rgba(52,211,153,.75); }
-    .dot.active{ background: rgba(94,234,212,.85); }
 
     /* Timer UI */
     .timerBox{
@@ -395,11 +381,13 @@
       .card .hd{ padding: 13px 13px 11px; }
       .card .bd{ padding: 12px 13px 13px; }
       .workoutCard h2{ font-size: 21px; }
+      .footerBar{ padding: 10px; }
     }
 
     @media (max-width: 375px){
       .workoutCard h2{ font-size: 20px; }
       .kpi{ min-width: 120px; }
+      .footerBar button{ flex-basis: 110px; }
     }
   </style>
 </head>
