@@ -276,30 +276,42 @@
     textarea{ min-height: 74px; resize: vertical; }
     .twocol{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
 
-    /* ====== STICKY FOOTER BAR ====== */
+    /* ====== FOOTER FIXE (toujours visible) ====== */
     .footerBar{
       display:flex;
       gap:10px;
       flex-wrap:wrap;
 
-      position: sticky;
-      bottom: calc(10px + env(safe-area-inset-bottom));
-      z-index: 10;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1000;
 
-      margin-top: 14px;
-      padding: 10px;
-      border-radius: 16px;
+      max-width: 560px;            /* aligné avec .app */
+      margin: 0 auto;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+
+      border-radius: 16px 16px 0 0;
       border: 1px solid rgba(255,255,255,.10);
-      background: rgba(15,23,42,.88);
+      border-bottom: none;
+
+      background: rgba(15,23,42,.92);
       backdrop-filter: blur(10px);
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      box-shadow: 0 -10px 30px rgba(0,0,0,.35);
     }
+
     .footerBar button{
       flex: 1 1 120px;
       min-height: 48px;
       font-size: 15px;
     }
 
+    /* Laisse de la place sous le contenu pour la barre fixe */
+    .workoutCard{
+      padding-bottom: calc(14px + 92px + env(safe-area-inset-bottom));
+    }
+    
     .hint{ margin-top: 10px; color: var(--muted); font-size: 14px; line-height: 1.4; }
     .center{ text-align:center; }
 
@@ -452,3 +464,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
