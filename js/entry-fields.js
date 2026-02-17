@@ -108,6 +108,13 @@ export function readEntryFromFields(type) {
 let holdTimer = { running:false, t:0, id:null };
 
 export function wireQuickControlsForCurrentScreen({ type, getPrevRoundEntry }) {
+  // Clean up any existing holdTimer if re-entering a hold_sec exercise
+  if (type === "hold_sec" && holdTimer.running) {
+    clearInterval(holdTimer.id);
+    holdTimer.running = false;
+    holdTimer.t = 0;
+  }
+
   const toNum = (x) => {
     const n = parseFloat(String(x ?? "").replace(",", "."));
     return Number.isFinite(n) ? n : 0;

@@ -1,7 +1,7 @@
 /* ---------- History and Summary ---------- */
 
 import { render, escapeHTML } from './utils.js';
-import { getProgress, getProgram } from './state.js';
+import { getProgress, setProgress, getProgram } from './state.js';
 import { saveProgress } from './storage.js';
 import { findPhase, findFundamental } from './program.js';
 
@@ -108,6 +108,7 @@ export function deleteWorkoutById(workoutId) {
     PROGRESS.last_workout.paused = false;
   }
 
+  setProgress(PROGRESS);
   saveProgress(PROGRESS);
 
   const after = (PROGRESS.workout_history || []).length;

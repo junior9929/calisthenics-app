@@ -7,7 +7,9 @@ import { ensureAudio } from './audio.js';
 let restInterval = null;
 let restRunning = false;
 
-export { restInterval, restRunning };
+export function isRestRunning() {
+  return restRunning;
+}
 
 export function ensureRestOverlay() {
   let o = document.getElementById("restOverlay");
