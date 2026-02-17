@@ -108,8 +108,8 @@ export function deleteWorkoutById(workoutId) {
     PROGRESS.last_workout.paused = false;
   }
 
-  saveProgress(PROGRESS);
   setProgress(PROGRESS);
+  saveProgress(PROGRESS);
 
   const after = (PROGRESS.workout_history || []).length;
   import('./utils.js').then(({ toast }) => {
