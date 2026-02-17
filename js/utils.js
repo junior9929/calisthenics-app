@@ -1,6 +1,7 @@
 /* ---------- Utility Functions ---------- */
 
 export const $ = (sel) => document.querySelector(sel);
+// Swipe gestures disabled - can interfere with text input and scrolling
 export const ENABLE_SWIPE = false;
 
 export function nowISO() { 

@@ -4,8 +4,10 @@ import { $, toast } from './utils.js';
 import { restCountdownBeep } from './audio.js';
 import { ensureAudio } from './audio.js';
 
-export let restInterval = null;
-export let restRunning = false;
+let restInterval = null;
+let restRunning = false;
+
+export { restInterval, restRunning };
 
 export function ensureRestOverlay() {
   let o = document.getElementById("restOverlay");

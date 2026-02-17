@@ -209,7 +209,7 @@ button:disabled{
   transform: translateY(0);
   opacity: 1;
 
-  /* IMPORTANT: laisse de la place pour la barre sticky (keep final value) */
+  /* IMPORTANT: laisse de la place pour la barre sticky (92px = footer height ~74px + safe area) */
   padding-bottom: calc(14px + 92px + env(safe-area-inset-bottom));
 }
 .workoutCard.enter{
