@@ -2,7 +2,8 @@
 
 import { $, render, escapeHTML, fmtTime, animateCard, toast, vibrate } from './utils.js';
 import { getProgress, getProgram } from './state.js';
-import { getWarmup, WARMUP_SLOTS } from './program.js';
+import { getWarmup } from './program.js';
+import { WARMUP_SLOTS } from './storage.js';
 import { attachSwipe } from './swipe.js';
 
 let warmupTimer = { running:false, t:0, id:null };
