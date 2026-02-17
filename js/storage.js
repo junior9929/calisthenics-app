@@ -1,6 +1,6 @@
 /* ---------- LocalStorage Persistence ---------- */
 
-const LS_KEY = "calisthenics_progress_v1";
+export const LS_KEY = "calisthenics_progress_v1";
 
 export const WARMUP_SLOTS = {
   pull: [

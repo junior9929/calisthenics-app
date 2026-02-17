@@ -1,7 +1,11 @@
-/* ---------- Storage ---------- */
-const LS_KEY = "calisthenics_progress_v1";
+/* ---------- ES6 Module Imports ---------- */
+import { $ } from './js/utils.js';
+import { setProgram, setProgress as setProgressGlobal } from './js/state.js';
+import { loadProgress, saveProgress, ensureProgressShape } from './js/storage.js';
+import { renderDashboard } from './js/dashboard.js';
+import { escapeHTML, render } from './js/utils.js';
 
-/* ---------- Utils ---------- */
+/* ---------- Utils (keeping minimal for app.js) ---------- */
 const $ = (sel) => document.querySelector(sel);
 const ENABLE_SWIPE = false;
 
@@ -2150,13 +2154,20 @@ function renderDashboard() {
 }
 
 /* ---------- Init ---------- */
-async function init() {
-  PROGRAM = await loadJSON("./programme.json");
+async function loadJSON(path) {
+  const res = await fetch(path, { cache: "no-store" });
+  if (!res.ok) throw new Error(`${path} introuvable`);
+  return await res.json();
+}
 
-  let p = getProgress();
+async function init() {
+  const PROGRAM = await loadJSON("./programme.json");
+  setProgram(PROGRAM);
+
+  let p = loadProgress();
   if (!p) p = await loadJSON("./progress.json");
-  PROGRESS = ensureProgressShape(p);
-  setProgress(PROGRESS);
+  const PROGRESS = ensureProgressShape(p);
+  saveProgress(PROGRESS);
 
   renderDashboard();
 }
