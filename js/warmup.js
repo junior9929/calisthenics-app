@@ -5,6 +5,7 @@ import { getProgress, getProgram } from './state.js';
 import { getWarmup } from './program.js';
 import { WARMUP_SLOTS } from './storage.js';
 import { attachSwipe } from './swipe.js';
+import { restCountdownBeep, ensureAudio } from './audio.js';
 
 let warmupTimer = { running:false, t:0, id:null };
 
@@ -149,14 +150,21 @@ export function runWarmups(warmupIds, onDone) {
     $("#btnDoneAll").onclick = () => onDone?.();
 
     if (showTimer) {
+      // Pre-initialize AudioContext for iOS
+      ensureAudio();
+      
       const update = () => { const el = $("#wuTime"); if (el) el.textContent = fmtTime(warmupTimer.t); };
 
       $("#wuStart").onclick = () => {
         if (warmupTimer.running) return;
+        // Unlock audio on user gesture (iOS requirement)
+        ensureAudio();
         warmupTimer.running = true;
         warmupTimer.id = setInterval(() => {
           warmupTimer.t = Math.max(0, warmupTimer.t - 1);
           update();
+          // Play countdown beeps at 3, 2, 1, and 0 (GO)
+          if (warmupTimer.t <= 3) restCountdownBeep(warmupTimer.t);
           if (warmupTimer.t === 0) stopWarmTimer();
         }, 1000);
       };
