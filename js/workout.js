@@ -8,7 +8,7 @@ import { formatValidate, meetsValidation, proposeLevelUps, isBelowFallbackThresh
 import { renderEntryFields, readEntryFromFields } from './entry-fields.js';
 import { bestRound1ForExercise } from './history.js';
 import { attachSwipe } from './swipe.js';
-import { runRestTimer, stopRest, restRunning } from './timer.js';
+import { runRestTimer, stopRest, isRestRunning } from './timer.js';
 import { wireQuickControlsForCurrentScreen as wireQuickControls } from './entry-fields.js';
 import { saveProgress } from './storage.js';
 
@@ -16,6 +16,7 @@ export function persistWorkout(workout) {
   const PROGRESS = getProgress();
   PROGRESS.last_workout = deepClone(workout);
   setProgress(PROGRESS);
+  saveProgress(PROGRESS);
 }
 
 export async function startWorkout({ resume, selectedExercises, setup }) {
@@ -263,14 +264,14 @@ export function renderWorkoutScreen(workout, nav) {
   $("#btnFinish").onclick = () => finishWorkout(workout);
 
   $("#btnSkipRest").onclick = () => {
-    if (!restRunning) return toast("Pas de repos en cours");
+    if (!isRestRunning()) return toast("Pas de repos en cours");
     stopRest(() => goNext(workout, nav, { requireSaved: false }));
   };
 
   // Swipe left: if resting -> skip rest, else next (requires saved)
   attachSwipe($("#swipeArea"),
     () => {
-      if (restRunning) return $("#btnSkipRest")?.click();
+      if (isRestRunning()) return $("#btnSkipRest")?.click();
       return goNext(workout, nav, { requireSaved: true });
     },
     () => goPrev(workout, nav)
@@ -345,8 +346,7 @@ export function renderWorkoutScreen(workout, nav) {
 }
 
 export function goPrev(workout, nav) {
-  clearInterval(restInterval);
-  restRunning = false;
+  stopRest();
 
   if (nav.idx > 0) {
     nav.idx--;
@@ -365,8 +365,7 @@ export function goPrev(workout, nav) {
 }
 
 export function goNext(workout, nav, { requireSaved }) {
-  clearInterval(restInterval);
-  restRunning = false;
+  stopRest();
 
   if (requireSaved) {
     const item = workout.circuit_plan.items[nav.idx];
@@ -392,8 +391,7 @@ export function goNext(workout, nav, { requireSaved }) {
 }
 
 export async function finishWorkout(workout) {
-  clearInterval(restInterval);
-  restRunning = false;
+  stopRest();
 
   const PROGRAM = getProgram();
   const PROGRESS = getProgress();
@@ -422,6 +420,7 @@ export async function finishWorkout(workout) {
   }
 
   setProgress(PROGRESS);
+  saveProgress(PROGRESS);
   
   const { renderWorkoutSummary } = await import('./history.js');
   renderWorkoutSummary(workout, { from: "finish" });
