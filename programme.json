@@ -9,7 +9,7 @@
         {
           "id": "wrists_circles",
           "type": "reps_both_directions",
-          "title": "Moulinets poignets",
+          "title": "Moulinets de poignets",
           "reps_min": 10,
           "reps_max": 15,
           "unit": "par sens"
@@ -17,7 +17,7 @@
         {
           "id": "elbows_circles",
           "type": "reps_both_directions",
-          "title": "Moulinets coudes",
+          "title": "Moulinets de coudes",
           "reps_min": 10,
           "reps_max": 15,
           "unit": "par sens"
@@ -25,7 +25,7 @@
         {
           "id": "shoulders_circles",
           "type": "reps_both_directions",
-          "title": "Moulinets épaules",
+          "title": "Moulinets d’épaules",
           "reps_min": 10,
           "reps_max": 15,
           "unit": "par sens"
@@ -84,7 +84,7 @@
               "use": {
                 "id": "side_plank",
                 "type": "timer_each_side",
-                "title": "Gainage côté",
+                "title": "Gainage latéral",
                 "duration_sec": 30,
                 "unit": "par côté"
               }
@@ -94,7 +94,7 @@
               "use": {
                 "id": "leg_raises",
                 "type": "reps",
-                "title": "Montée de jambes",
+                "title": "Montées de jambes",
                 "reps_min": 10,
                 "reps_max": 15
               }
@@ -121,13 +121,13 @@
         {
           "id": "calf_raises",
           "type": "timer",
-          "title": "Montée de mollets",
+          "title": "Montées de mollets",
           "duration_sec": 30
         },
         {
           "id": "toe_raises",
           "type": "timer",
-          "title": "Montée d'orteils",
+          "title": "Montées sur les orteils",
           "duration_sec": 30
         },
         {
@@ -151,7 +151,7 @@
         {
           "id": "lying_knee_raises",
           "type": "timer",
-          "title": "Montée de genoux allongé",
+          "title": "Montées de genoux allongé",
           "duration_sec": 30
         }
       ]
@@ -177,7 +177,7 @@
         "reps_threshold": 3,
         "hold_threshold_sec": 5,
         "prompt_for_fallback": true,
-        "description": "Si <= 3 reps (ou <= 5 sec pour un hold), proposer de compléter avec le niveau précédent."
+        "description": "Si ≤ 3 répétitions (ou ≤ 5 s pour un maintien), proposer de compléter avec le niveau précédent."
       },
       "fundamentals": [
         {
@@ -191,10 +191,11 @@
               "validate": {
                 "reps": 15,
                 "note": "Presque à l'horizontale par rapport au support"
+              },
               "tips": [
-                "Bras tendus, corps droit."
+                "Bras tendus, corps gainé et aligné.",
+                "Tire les coudes vers les hanches, contrôle la descente."
               ]
-              }
             },
             {
               "id": "pullups_lvl1bis",
@@ -203,12 +204,11 @@
               "validate": {
                 "sec": 30,
                 "note": "Confortablement, sans glisser"
-              "tips": [
-                "Mains serrées, bras et épaules contractés",
-                "Jambes droites, tendues, légèrement en avant",
-                "Abdos gainés"
-              ]
               },
+              "tips": [
+                "Épaules basses, omoplates engagées (sans monter vers les oreilles).",
+                "Corps gainé, jambes tendues légèrement en avant."
+              ],
               "is_auxiliary": true,
               "required_with": ["pullups_lvl1"]
             },
@@ -230,13 +230,12 @@
                 "reps": 6,
                 "each_rep_min_sec": 10,
                 "pause_anywhere_sec": 2,
-                "note": "Être capable de stopper 2-3 secondes la descente en tout point"
+                "note": "Être capable de stopper 2–3 secondes la descente en tout point"
+              },
               "tips": [
-                "Mains serrées, bras et épaules contractés",
-                "Jambes droites, tendues, légèrement en avant",
-                "Abdos gainés"
+                "Descends lentement (objectif 10 s), sans perdre le gainage.",
+                "Marque une pause 2–3 s à un endroit différent sur chaque rep."
               ]
-              }
             },
             {
               "id": "pullups_lvl4",
@@ -245,12 +244,11 @@
               "validate": {
                 "reps": 10,
                 "note": "Amplitude complète"
+              },
               "tips": [
-                "Mains serrées, cassez la barre !",
-                "Jambes droites, tendues, pieds joints",
-                "Abdos gainés"
+                "Prise ferme, avant-bras solides (imagine “casser la barre”).",
+                "Gainage fort, jambes tendues et pieds serrés."
               ]
-              }
             }
           ],
           "combos": [
@@ -259,14 +257,8 @@
               "title": "Combo niveau 1 (obligatoire)",
               "when_level_is": "pullups_lvl1",
               "items": [
-                {
-                  "kind": "level",
-                  "level_id": "pullups_lvl1"
-                },
-                {
-                  "kind": "level",
-                  "level_id": "pullups_lvl1bis"
-                }
+                { "kind": "level", "level_id": "pullups_lvl1" },
+                { "kind": "level", "level_id": "pullups_lvl1bis" }
               ],
               "validate_all": true
             }
@@ -275,7 +267,7 @@
             {
               "kind": "current_level_main",
               "title_override": "Tractions (progression)"
-            }            
+            }
           ]
         },
         {
@@ -289,12 +281,11 @@
               "validate": {
                 "reps": 20,
                 "note": "Support bas, corps presque à l'horizontal"
+              },
               "tips": [
-                "Corps droit",
-                "Tête, hanches, genoux, pieds alignés",
-                "Abdos gainés"
+                "Corps gainé et aligné (tête–hanches–genoux–pieds).",
+                "Épaules stables : “pousse le sol”."
               ]
-              }
             },
             {
               "id": "pushups_lvl2",
@@ -303,12 +294,11 @@
               "validate": {
                 "reps": 20,
                 "note": "Amplitude complète"
+              },
               "tips": [
-                "Corps droit",
-                "Tête, hanches, genoux, pieds alignés",
-                "Abdos gainés"
+                "Corps gainé, bassin neutre (ne casse pas la ligne).",
+                "Contrôle la descente, remonte en poussant fort."
               ]
-              }
             },
             {
               "id": "pushups_lvl3",
@@ -317,27 +307,25 @@
               "validate": {
                 "reps": 12,
                 "pause_anywhere_sec": 2,
-                "note": "Amplitude complète, stopper 2-3 secondes possible en tout point"
+                "note": "Amplitude complète, stopper 2–3 secondes possible en tout point"
+              },
               "tips": [
-                "Corps droit",
-                "Tête, hanches, genoux, pieds alignés",
-                "Abdos gainés"
+                "Descends lentement et marque une pause 2–3 s.",
+                "Garde les coudes à ~45° du buste (pas trop ouverts)."
               ]
-              }
             },
             {
               "id": "pushups_lvl4",
-              "title": "N4/4: Pompes",
+              "title": "N4/4 : Pompes",
               "type": "reps",
               "validate": {
                 "reps": 20,
                 "note": "Amplitude complète"
+              },
               "tips": [
-                "Corps droit, abdos gainés",
-                "Rotation extérieure des épaules",
-                "Repousse la terre !"
+                "Gainage fort, fessiers contractés.",
+                "Rotation externe légère des épaules, “repousse la terre !”."
               ]
-              }
             }
           ],
           "circuit_items": [
@@ -357,12 +345,12 @@
               "type": "reps",
               "validate": {
                 "reps": 20
+              },
               "tips": [
-                "Redresser le buste",
-                "Descente : Fesses en arrières, genoux en avant",
-                "Montée : Repousse le sol !"
+                "Buste haut, regard loin devant.",
+                "Descente : fesses en arrière, genoux suivent la ligne des orteils.",
+                "Montée : repousse le sol !"
               ]
-              }
             },
             {
               "id": "pistols_lvl2",
@@ -370,11 +358,11 @@
               "type": "reps",
               "validate": {
                 "reps": 20
+              },
               "tips": [
-                "Pause 3-4 sec en bas",
-                "Montée : contractez fessiers & abdos"
+                "Marque une pause 3–4 s en bas.",
+                "Remonte en contractant fessiers et abdominaux."
               ]
-              }
             },
             {
               "id": "pistols_lvl3",
@@ -383,13 +371,12 @@
               "validate": {
                 "reps": 10,
                 "note": "Avec aussi peu d'assistance que possible"
+              },
               "tips": [
-                "Bras et jambe opposée tendus en avant",
-                "Abdos et fessiers gainés",
-                "Orteils grippés au sol",
-                "Repousse le sol !"
+                "Bras et jambe opposée tendus devant.",
+                "Pied “grippé” au sol : gros orteil + talon ancrés.",
+                "Repousse le sol et contrôle la descente."
               ]
-              }
             },
             {
               "id": "pistols_lvl4",
@@ -397,12 +384,12 @@
               "type": "reps_each_side",
               "validate": {
                 "reps": 6
+              },
               "tips": [
-                "Orteils grippés au sol",
-                "Repousse le sol !",
-                "Pivoter le pied droit vers la droite"
+                "Pied bien ancré : ne laisse pas le genou s’effondrer vers l’intérieur.",
+                "Repousse le sol, contrôle la stabilité.",
+                "Ajuste légèrement l’orientation du pied si besoin (confort/articulation)."
               ]
-              }
             }
           ],
           "circuit_items": [
@@ -422,12 +409,12 @@
               "type": "hold_sec",
               "validate": {
                 "sec": 30
+              },
               "tips": [
-                "Abdos et fessiers contractés",
-                "Repousse la terre avec les épaules !",
-                "Dos arrondi, rentrer le ventre"
+                "Abdominaux et fessiers contractés.",
+                "Pousse le sol avec les épaules (omoplates actives).",
+                "Rentre légèrement le ventre, dos neutre."
               ]
-              }
             },
             {
               "id": "plank_lvl2",
@@ -436,12 +423,12 @@
               "validate": {
                 "sec": 60,
                 "note": "Confortablement"
+              },
               "tips": [
-                "Abdos et fessiers contractés",
-                "Repousse la terre avec les épaules !",
-                "Dos arrondi, rentrer le ventre"
+                "Abdominaux et fessiers contractés.",
+                "Pousse le sol avec les épaules (omoplates actives).",
+                "Respire sans perdre le gainage."
               ]
-              }
             }
           ],
           "circuit_items": [
@@ -457,29 +444,29 @@
           "levels": [
             {
               "id": "dips_lvl1",
-              "title": "N1/4 : Dips sur support bas jambes pliées",
+              "title": "N1/4 : Dips sur support bas, jambes pliées",
               "type": "reps",
               "validate": {
                 "reps": 12
+              },
               "tips": [
-                "Démarrer bras tendus",
-                "Descendre les bras à 90°",
-                "Bras toujours contractés"
+                "Démarre bras tendus, épaules basses.",
+                "Descends jusqu’à ~90° au coude (contrôle).",
+                "Garde une tension constante."
               ]
-              }
             },
             {
               "id": "dips_lvl2",
-              "title": "N2/4 : Dips sur support bas jambes tendues",
+              "title": "N2/4 : Dips sur support bas, jambes tendues",
               "type": "reps",
               "validate": {
                 "reps": 12
+              },
               "tips": [
-                "Démarrer bras tendus",
-                "Descendre les bras à 90°",
-                "Bras toujours contractés"
+                "Démarre bras tendus, épaules basses.",
+                "Descends jusqu’à ~90° au coude (contrôle).",
+                "Gainage fort, jambes tendues."
               ]
-              }
             },
             {
               "id": "dips_lvl3",
@@ -487,12 +474,11 @@
               "type": "reps",
               "validate": {
                 "reps": 8
+              },
               "tips": [
-                "Démarrer bras tendus",
-                "Descendre les bras à 90°, lentement !",
-                "Poser les pieds pour remonter"
+                "Descends lentement jusqu’à ~90° au coude.",
+                "Pose les pieds pour remonter et recommencer proprement."
               ]
-              }
             },
             {
               "id": "dips_lvl4",
@@ -520,25 +506,23 @@
               "type": "hold_sec",
               "validate": {
                 "sec": 8
+              },
               "tips": [
-                "Bras tendus",
-                "Tête droite, épaules baissées",
-                "Poser les pieds pour remonter"
+                "Bras tendus, épaules basses.",
+                "Buste grandit vers le haut, gainage actif."
               ]
-              }
             },
             {
               "id": "lsit_lvl2",
-              "title": "N2/4 : Se soulever au sol jambes pliées",
+              "title": "N2/4 : Se soulever au sol, jambes pliées",
               "type": "hold_sec",
               "validate": {
                 "sec": 8
+              },
               "tips": [
-                "Bras tendus",
-                "Buste droit, épaules baissées",
-                "Ramener les genoux au visage"
+                "Bras tendus, épaules basses.",
+                "Ramène les genoux vers la poitrine sans arrondir excessivement."
               ]
-              }
             },
             {
               "id": "lsit_lvl2bis",
@@ -547,11 +531,11 @@
               "validate": {
                 "reps": 10,
                 "note": "Mains au-delà des genoux"
-              "tips": [
-                "Mais de part et d'autre",
-                "Relever les jambes tendues"
-              ]
               },
+              "tips": [
+                "Mains de part et d’autre des hanches, bras tendus.",
+                "Lève les jambes (aussi tendues que possible) en gardant le gainage."
+              ],
               "is_auxiliary": true
             },
             {
@@ -561,11 +545,11 @@
               "validate": {
                 "sec": 5,
                 "note": "Jambes dépliées"
+              },
               "tips": [
-                "Départ au sol, bras tendus",
-                "Dépliez progressivement les jambes"
+                "Démarre sur un L-sit genoux pliés puis allonge progressivement.",
+                "Garde les épaules basses et le buste haut."
               ]
-              }
             },
             {
               "id": "lsit_lvl4",
@@ -582,13 +566,8 @@
               "title": "Combo (L-sit + relevés de jambes)",
               "when_level_is_or_above": "lsit_lvl2",
               "items": [
-                {
-                  "kind": "current_level_main"
-                },
-                {
-                  "kind": "level",
-                  "level_id": "lsit_lvl2bis"
-                }
+                { "kind": "current_level_main" },
+                { "kind": "level", "level_id": "lsit_lvl2bis" }
               ],
               "validate_all": false
             }
@@ -608,51 +587,23 @@
         }
       ],
       "phase_exit_criteria": {
-        "pullups": {
-          "level": "pullups_lvl4",
-          "reps": 10
-        },
-        "pushups": {
-          "level": "pushups_lvl4",
-          "reps": 20
-        },
+        "pullups": { "level": "pullups_lvl4", "reps": 10 },
+        "pushups": { "level": "pushups_lvl4", "reps": 20 },
         "pistols": {
           "either": [
-            {
-              "level": "pistols_lvl4",
-              "reps_each_side": 10
-            },
-            {
-              "level": "pistols_lvl3",
-              "reps_each_side": 10
-            }
+            { "level": "pistols_lvl4", "reps_each_side": 10 },
+            { "level": "pistols_lvl3", "reps_each_side": 10 }
           ]
         },
-        "plank": {
-          "level": "plank_lvl2",
-          "sec": 60
-        },
-        "dips": {
-          "level": "dips_lvl4",
-          "reps": 12
-        },
+        "plank": { "level": "plank_lvl2", "sec": 60 },
+        "dips": { "level": "dips_lvl4", "reps": 12 },
         "lsit": {
           "either": [
-            {
-              "level": "lsit_lvl4",
-              "sec": 10
-            },
-            {
-              "level": "lsit_lvl2",
-              "sec": 10
-            }
+            { "level": "lsit_lvl4", "sec": 10 },
+            { "level": "lsit_lvl2", "sec": 10 }
           ]
         }
       }
     }
   ]
 }
-
-
-
-
