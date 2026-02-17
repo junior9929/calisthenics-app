@@ -130,6 +130,27 @@ function levelIndex(fundamental, levelId) {
 function isLevelAtOrAbove(fundamental, currentLevelId, thresholdLevelId) {
   return levelIndex(fundamental, currentLevelId) >= levelIndex(fundamental, thresholdLevelId);
 }
+function getTipsFor(program, phaseId, exId, levelId) {
+  const phase = findPhase(program, phaseId);
+  const f = findFundamental(phase, exId);
+  const lvl = f ? findLevel(f, levelId) : null;
+
+  const exTips = (f?.tips || []);
+  const lvlTips = (lvl?.tips || []);
+  const all = [...exTips, ...lvlTips].filter(Boolean);
+
+  return all;
+}
+function renderTipsBox(tips) {
+  if (!tips || !tips.length) return "";
+  const items = tips.map(t => `<li>${escapeHTML(t)}</li>`).join("");
+  return `
+    <div class="tips">
+      <div class="tipsTitle">Tips</div>
+      <ul>${items}</ul>
+    </div>
+  `;
+}
 
 /* ---------- Warmup helpers ---------- */
 function getWarmup(program, warmupId) {
@@ -977,6 +998,7 @@ function renderTestScreen(ctx) {
   const exId = order[ctx.exIdx];
   const f = findFundamental(phase, exId);
   const level = f.levels[ctx.levelIdx];
+  const tips = getTipsFor(PROGRAM, PROGRESS.app.active_phase_id, exId, level.id);
 
   const head = ctx.mode === "initial" ? "Test initial" : "Re-test";
   const goal = formatValidate(level.type, level.validate);
@@ -999,6 +1021,8 @@ function renderTestScreen(ctx) {
               <div class="chip" id="validBadge">❌ Pas encore</div>
             </div>
 
+            ${renderTipsBox(tips)}
+            
             <div class="kpis">
               <div class="kpi">
                 <div class="k">Groupe</div>
@@ -1473,6 +1497,7 @@ function renderWorkoutScreen(workout, nav) {
   const bestLine = best ? `Meilleur tour 1: ${best.val}${best.measure_type === "hold_sec" ? "s" : ""}` : "Meilleur tour 1: —";
 
   const group = exerciseGroup(item.exercise_id);
+  const tips = getTipsFor(PROGRAM, workout.phase_id, item.exercise_id, item.level_id);
 
   render(`
     <div class="grid">
@@ -1522,6 +1547,8 @@ function renderWorkoutScreen(workout, nav) {
               </div>
             </div>
 
+            ${renderTipsBox(tips)}
+            
             <div class="entry">
               ${renderEntryFields(item.measure_type, already?.entry)}
               <div class="field">
@@ -2139,6 +2166,7 @@ init().catch((e) => {
   $("#subtitle").textContent = "Erreur : " + e.message;
   render(`<div class="card"><div class="bd">Erreur: ${escapeHTML(e.message)}</div></div>`);
 });
+
 
 
 
