@@ -119,7 +119,17 @@ export function wireQuickControlsForCurrentScreen({ type, getPrevRoundEntry }) {
     const n = parseFloat(String(x ?? "").replace(",", "."));
     return Number.isFinite(n) ? n : 0;
   };
-  const setV = (n) => { const v = $("#v"); if (v) v.value = String(Math.max(0, Math.floor(n))); };
+  
+  // Helper to dispatch input event for programmatic value changes
+  const fireInput = (el) => { if (el) el.dispatchEvent(new Event("input", { bubbles: true })); };
+  
+  const setV = (n) => {
+    const v = $("#v");
+    if (v) {
+      v.value = String(Math.max(0, Math.floor(n)));
+      fireInput(v);
+    }
+  };
 
   if (type === "reps" || type === "negatives") {
     const dec1 = $("#dec1"), inc1 = $("#inc1"), inc5 = $("#inc5"), same = $("#samePrevRound");
@@ -176,8 +186,20 @@ export function wireQuickControlsForCurrentScreen({ type, getPrevRoundEntry }) {
 
   if (type === "reps_each_side") {
     const lDec1=$("#lDec1"), lInc1=$("#lInc1"), rDec1=$("#rDec1"), rInc1=$("#rInc1"), same=$("#samePrevRound");
-    const setL = (n) => { const el=$("#l"); if(el) el.value=String(Math.max(0,Math.floor(n))); };
-    const setR = (n) => { const el=$("#r"); if(el) el.value=String(Math.max(0,Math.floor(n))); };
+    const setL = (n) => {
+      const el = $("#l");
+      if (el) {
+        el.value = String(Math.max(0, Math.floor(n)));
+        fireInput(el);
+      }
+    };
+    const setR = (n) => {
+      const el = $("#r");
+      if (el) {
+        el.value = String(Math.max(0, Math.floor(n)));
+        fireInput(el);
+      }
+    };
     if (lDec1) lDec1.onclick = () => setL(toNum($("#l")?.value) - 1);
     if (lInc1) lInc1.onclick = () => setL(toNum($("#l")?.value) + 1);
     if (rDec1) rDec1.onclick = () => setR(toNum($("#r")?.value) - 1);
