@@ -164,7 +164,9 @@ export function runWarmups(warmupIds, onDone) {
           warmupTimer.t = Math.max(0, warmupTimer.t - 1);
           update();
           // Play countdown beeps at 3, 2, 1, and 0 (GO)
-          if (warmupTimer.t <= 3) restCountdownBeep(warmupTimer.t);
+          if (warmupTimer.t === 3 || warmupTimer.t === 2 || warmupTimer.t === 1 || warmupTimer.t === 0) {
+            restCountdownBeep(warmupTimer.t);
+          }
           if (warmupTimer.t === 0) stopWarmTimer();
         }, 1000);
       };

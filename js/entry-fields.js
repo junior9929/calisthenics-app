@@ -159,7 +159,12 @@ export function wireQuickControlsForCurrentScreen({ type, getPrevRoundEntry }) {
     // timer controls
     const ht = $("#holdTime");
     const updateHT = () => { if (ht) ht.textContent = fmtTime(holdTimer.t); };
-    const stop = () => { clearInterval(holdTimer.id); holdTimer.running = false; };
+    const stop = () => {
+      clearInterval(holdTimer.id);
+      holdTimer.running = false;
+      // Quand on met en pause, copier le temps du chrono dans l'input
+      setV(holdTimer.t);
+    };
     const start = () => {
       if (holdTimer.running) return;
       holdTimer.running = true;
