@@ -111,8 +111,9 @@ export function deleteWorkoutById(workoutId) {
   saveProgress(PROGRESS);
 
   const after = (PROGRESS.workout_history || []).length;
-  const { toast } = await import('./utils.js');
-  toast(before !== after ? "Séance supprimée 🗑️" : "Séance introuvable");
+  import('./utils.js').then(({ toast }) => {
+    toast(before !== after ? "Séance supprimée 🗑️" : "Séance introuvable");
+  });
 }
 
 export function renderHistory() {
