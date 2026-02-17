@@ -149,7 +149,7 @@
     .badge.warn{ border-color: rgba(251,191,36,.35); color: rgba(251,191,36,.95); background: rgba(251,191,36,.08) }
 
     /* Workout UI */
-    .workoutTop{display:flex; flex-direction:column; gap:12px;}
+    .workoutTop{display:flex; flex-direction:column; gap:12px; position: relative;}
     .progress{
       height:10px;
       border-radius:999px;
@@ -164,6 +164,46 @@
       border-radius:999px;
       transition: width .15s ease;
     }
+
+    /* ===== Step list / timeline (petits points verts) ===== */
+    .stepList{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top: 10px;
+
+      position: sticky;
+      top: 54px; /* colle sous progress + row */
+      z-index: 9;
+
+      padding: 10px 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(15,23,42,.78);
+      backdrop-filter: blur(10px);
+    }
+    .stepPill{
+      font-size: 12px;
+      padding: 7px 9px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      color: var(--muted);
+      display:flex;
+      gap:6px;
+      align-items:center;
+    }
+    .stepPill.active{
+      border-color: rgba(94,234,212,.45);
+      color: rgba(94,234,212,.95);
+      background: rgba(94,234,212,.08);
+    }
+    .dot{
+      width:8px; height:8px; border-radius:999px;
+      background: rgba(255,255,255,.18);
+    }
+    .dot.done{ background: rgba(52,211,153,.75); }
+    .dot.active{ background: rgba(94,234,212,.85); }
 
     .workoutCard{
       border-radius: var(--r);
@@ -236,9 +276,7 @@
     textarea{ min-height: 74px; resize: vertical; }
     .twocol{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
 
-    /* ====== STICKY FOOTER BAR ======
-       Reste visible en bas de la carte sur iPhone (et desktop aussi).
-    */
+    /* ====== STICKY FOOTER BAR ====== */
     .footerBar{
       display:flex;
       gap:10px;
@@ -257,7 +295,7 @@
       box-shadow: 0 10px 30px rgba(0,0,0,.35);
     }
     .footerBar button{
-      flex: 1 1 120px; /* gros boutons et équilibrés */
+      flex: 1 1 120px;
       min-height: 48px;
       font-size: 15px;
     }
@@ -382,12 +420,14 @@
       .card .bd{ padding: 12px 13px 13px; }
       .workoutCard h2{ font-size: 21px; }
       .footerBar{ padding: 10px; }
+      .stepList{ top: 58px; }
     }
 
     @media (max-width: 375px){
       .workoutCard h2{ font-size: 20px; }
       .kpi{ min-width: 120px; }
       .footerBar button{ flex-basis: 110px; }
+      .stepList{ top: 62px; }
     }
   </style>
 </head>
