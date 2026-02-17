@@ -186,27 +186,35 @@
           "levels": [
             {
               "id": "pullups_lvl1",
-              "title": "N1 : Tractions australiennes",
+              "title": "N1/4 : Tractions australiennes",
               "type": "reps",
               "validate": {
                 "reps": 15,
                 "note": "Presque à l'horizontale par rapport au support"
+              "tips": [
+                "Bras tendus, corps droit."
+              ]
               }
             },
             {
               "id": "pullups_lvl1bis",
-              "title": "N1b : Suspension",
+              "title": "N1b/4 : Suspension",
               "type": "hold_sec",
               "validate": {
                 "sec": 30,
                 "note": "Confortablement, sans glisser"
+              "tips": [
+                "Mains serrées, bras et épaules contractés",
+                "Jambes droites, tendues, légèrement en avant",
+                "Abdos gainés"
+              ]
               },
               "is_auxiliary": true,
               "required_with": ["pullups_lvl1"]
             },
             {
               "id": "pullups_lvl2",
-              "title": "N2 : Tractions avec élastique",
+              "title": "N2/4 : Tractions avec élastique",
               "type": "reps",
               "validate": {
                 "reps": 6,
@@ -216,22 +224,32 @@
             },
             {
               "id": "pullups_lvl3",
-              "title": "N3 : Tractions négatives",
+              "title": "N3/4 : Tractions négatives",
               "type": "negatives",
               "validate": {
                 "reps": 6,
                 "each_rep_min_sec": 10,
                 "pause_anywhere_sec": 2,
                 "note": "Être capable de stopper 2-3 secondes la descente en tout point"
+              "tips": [
+                "Mains serrées, bras et épaules contractés",
+                "Jambes droites, tendues, légèrement en avant",
+                "Abdos gainés"
+              ]
               }
             },
             {
               "id": "pullups_lvl4",
-              "title": "N4 : Tractions",
+              "title": "N4/4 : Tractions",
               "type": "reps",
               "validate": {
                 "reps": 10,
                 "note": "Amplitude complète"
+              "tips": [
+                "Mains serrées, cassez la barre !",
+                "Jambes droites, tendues, pieds joints",
+                "Abdos gainés"
+              ]
               }
             }
           ],
@@ -266,39 +284,59 @@
           "levels": [
             {
               "id": "pushups_lvl1",
-              "title": "N1 : Pompes mains surélevées",
+              "title": "N1/4 : Pompes mains surélevées",
               "type": "reps",
               "validate": {
                 "reps": 20,
                 "note": "Support bas, corps presque à l'horizontal"
+              "tips": [
+                "Corps droit",
+                "Tête, hanches, genoux, pieds alignés",
+                "Abdos gainés"
+              ]
               }
             },
             {
               "id": "pushups_lvl2",
-              "title": "N2 : Pompes à genoux",
+              "title": "N2/4 : Pompes à genoux",
               "type": "reps",
               "validate": {
                 "reps": 20,
                 "note": "Amplitude complète"
+              "tips": [
+                "Corps droit",
+                "Tête, hanches, genoux, pieds alignés",
+                "Abdos gainés"
+              ]
               }
             },
             {
               "id": "pushups_lvl3",
-              "title": "N3 : Pompes négatives",
+              "title": "N3/4 : Pompes négatives",
               "type": "negatives",
               "validate": {
                 "reps": 12,
                 "pause_anywhere_sec": 2,
                 "note": "Amplitude complète, stopper 2-3 secondes possible en tout point"
+              "tips": [
+                "Corps droit",
+                "Tête, hanches, genoux, pieds alignés",
+                "Abdos gainés"
+              ]
               }
             },
             {
               "id": "pushups_lvl4",
-              "title": "N4 : Pompes",
+              "title": "N4/4: Pompes",
               "type": "reps",
               "validate": {
                 "reps": 20,
                 "note": "Amplitude complète"
+              "tips": [
+                "Corps droit, abdos gainés",
+                "Rotation extérieure des épaules",
+                "Repousse la terre !"
+              ]
               }
             }
           ],
@@ -315,35 +353,55 @@
           "levels": [
             {
               "id": "pistols_lvl1",
-              "title": "N1 : Demi-squats",
+              "title": "N1/4 : Demi-squats",
               "type": "reps",
               "validate": {
                 "reps": 20
+              "tips": [
+                "Redresser le buste",
+                "Descente : Fesses en arrières, genoux en avant",
+                "Montée : Repousse le sol !"
+              ]
               }
             },
             {
               "id": "pistols_lvl2",
-              "title": "N2 : Squats profonds",
+              "title": "N2/4 : Squats profonds",
               "type": "reps",
               "validate": {
                 "reps": 20
+              "tips": [
+                "Pause 3-4 sec en bas",
+                "Montée : contractez fessiers & abdos"
+              ]
               }
             },
             {
               "id": "pistols_lvl3",
-              "title": "N3 : Pistol squats assistés",
+              "title": "N3/4 : Pistol squats assistés",
               "type": "reps_each_side",
               "validate": {
                 "reps": 10,
                 "note": "Avec aussi peu d'assistance que possible"
+              "tips": [
+                "Bras et jambe opposée tendus en avant",
+                "Abdos et fessiers gainés",
+                "Orteils grippés au sol",
+                "Repousse le sol !"
+              ]
               }
             },
             {
               "id": "pistols_lvl4",
-              "title": "N4 : Pistol squats",
+              "title": "N4/4 : Pistol squats",
               "type": "reps_each_side",
               "validate": {
                 "reps": 6
+              "tips": [
+                "Orteils grippés au sol",
+                "Repousse le sol !",
+                "Pivoter le pied droit vers la droite"
+              ]
               }
             }
           ],
@@ -360,19 +418,29 @@
           "levels": [
             {
               "id": "plank_lvl1",
-              "title": "N1 : Gainage pieds écartés",
+              "title": "N1/2 : Gainage pieds écartés",
               "type": "hold_sec",
               "validate": {
                 "sec": 30
+              "tips": [
+                "Abdos et fessiers contractés",
+                "Repousse la terre avec les épaules !",
+                "Dos arrondi, rentrer le ventre"
+              ]
               }
             },
             {
               "id": "plank_lvl2",
-              "title": "N2 : Gainage",
+              "title": "N2/2 : Gainage",
               "type": "hold_sec",
               "validate": {
                 "sec": 60,
                 "note": "Confortablement"
+              "tips": [
+                "Abdos et fessiers contractés",
+                "Repousse la terre avec les épaules !",
+                "Dos arrondi, rentrer le ventre"
+              ]
               }
             }
           ],
@@ -389,31 +457,46 @@
           "levels": [
             {
               "id": "dips_lvl1",
-              "title": "N1 : Dips sur support bas jambes pliées",
+              "title": "N1/4 : Dips sur support bas jambes pliées",
               "type": "reps",
               "validate": {
                 "reps": 12
+              "tips": [
+                "Démarrer bras tendus",
+                "Descendre les bras à 90°",
+                "Bras toujours contractés"
+              ]
               }
             },
             {
               "id": "dips_lvl2",
-              "title": "N2 : Dips sur support bas jambes tendues",
+              "title": "N2/4 : Dips sur support bas jambes tendues",
               "type": "reps",
               "validate": {
                 "reps": 12
+              "tips": [
+                "Démarrer bras tendus",
+                "Descendre les bras à 90°",
+                "Bras toujours contractés"
+              ]
               }
             },
             {
               "id": "dips_lvl3",
-              "title": "N3 : Dips négatifs",
+              "title": "N3/4 : Dips négatifs",
               "type": "reps",
               "validate": {
                 "reps": 8
+              "tips": [
+                "Démarrer bras tendus",
+                "Descendre les bras à 90°, lentement !",
+                "Poser les pieds pour remonter"
+              ]
               }
             },
             {
               "id": "dips_lvl4",
-              "title": "N4 : Dips",
+              "title": "N4/4 : Dips",
               "type": "reps",
               "validate": {
                 "reps": 12
@@ -433,42 +516,60 @@
           "levels": [
             {
               "id": "lsit_lvl1",
-              "title": "N1 : Se soulever en position assise",
+              "title": "N1/4 : Se soulever en position assise",
               "type": "hold_sec",
               "validate": {
                 "sec": 8
+              "tips": [
+                "Bras tendus",
+                "Tête droite, épaules baissées",
+                "Poser les pieds pour remonter"
+              ]
               }
             },
             {
               "id": "lsit_lvl2",
-              "title": "N2 : Se soulever au sol jambes pliées",
+              "title": "N2/4 : Se soulever au sol jambes pliées",
               "type": "hold_sec",
               "validate": {
                 "sec": 8
+              "tips": [
+                "Bras tendus",
+                "Buste droit, épaules baissées",
+                "Ramener les genoux au visage"
+              ]
               }
             },
             {
               "id": "lsit_lvl2bis",
-              "title": "N2b : Relevés de jambes",
+              "title": "N2b/4 : Relevés de jambes au sol",
               "type": "reps",
               "validate": {
                 "reps": 10,
                 "note": "Mains au-delà des genoux"
+              "tips": [
+                "Mais de part et d'autre",
+                "Relever les jambes tendues"
+              ]
               },
               "is_auxiliary": true
             },
             {
               "id": "lsit_lvl3",
-              "title": "N3 : Déplier les jambes",
+              "title": "N3/4 : Déplier les jambes",
               "type": "hold_sec",
               "validate": {
                 "sec": 5,
                 "note": "Jambes dépliées"
+              "tips": [
+                "Départ au sol, bras tendus",
+                "Dépliez progressivement les jambes"
+              ]
               }
             },
             {
               "id": "lsit_lvl4",
-              "title": "N4 : L-sit",
+              "title": "N4/4 : L-sit",
               "type": "hold_sec",
               "validate": {
                 "sec": 10
@@ -551,6 +652,7 @@
     }
   ]
 }
+
 
 
 
