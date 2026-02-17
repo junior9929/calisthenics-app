@@ -1,0 +1,24 @@
+{
+  "name": "calisthenics-app",
+  "version": "1.0.0",
+  "description": "Application web de suivi d'entraînement calisthenics (offline-first, vanilla JS)",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve .",
+    "serve": "npx serve ."
+  },
+  "keywords": [
+    "calisthenics",
+    "workout",
+    "training",
+    "fitness",
+    "progressive",
+    "offline-first"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

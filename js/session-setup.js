@@ -1,0 +1,162 @@
+/* ---------- Session Setup Screen ---------- */
+
+import { $, render, escapeHTML, escapeAttr, toast } from './utils.js';
+import { getProgress, getProgram } from './state.js';
+import { saveProgress, WARMUP_SLOTS } from './storage.js';
+import { findPhase, findFundamental } from './program.js';
+import { safeGet } from './utils.js';
+
+export function defaultSelectionForFocus(focus) {
+  if (focus === "pull") return ["pullups", "pistols", "plank", "lsit"];
+  if (focus === "push") return ["pushups", "pistols", "plank", "dips"];
+  return ["pullups","pushups","pistols","plank","dips","lsit"];
+}
+
+export function renderSessionSetup({ mode }) {
+  const PROGRAM = getProgram();
+  const PROGRESS = getProgress();
+  const phase = findPhase(PROGRAM, PROGRESS.app.active_phase_id);
+  const initialDone = !!safeGet(PROGRESS, "tests.initial_test.performed_at", null);
+
+  const last = PROGRESS.settings.last_session_setup;
+  const focus = last?.focus || "all";
+  const selected = new Set(last?.selectedExercises || defaultSelectionForFocus(focus));
+
+  const exOptions = (phase.fundamentals_order || []).map(exId => {
+    const f = findFundamental(phase, exId);
+    const checked = selected.has(exId) ? "checked" : "";
+    return `
+      <label class="item" style="cursor:pointer;">
+        <div class="left">
+          <div class="name">${escapeHTML(f?.title ?? exId)}</div>
+          <div class="tiny muted">Inclure dans la séance</div>
+        </div>
+        <input type="checkbox" data-ex="${escapeAttr(exId)}" ${checked} />
+      </label>
+    `;
+  }).join("");
+
+  const pullChoice = PROGRESS.settings.warmup_slot_choices?.pull || WARMUP_SLOTS.pull[0];
+  const pushChoice = PROGRESS.settings.warmup_slot_choices?.push || WARMUP_SLOTS.push[0];
+
+  render(`
+    <div class="grid">
+      <div class="card">
+        <div class="hd">
+          <div class="h">
+            <div class="k">Avant de commencer</div>
+            <div class="v">${mode === "test" ? "Test (avec échauffement)" : "Configurer la séance"}</div>
+          </div>
+          <div class="pill">Phase 1</div>
+        </div>
+        <div class="bd">
+          <div class="btns">
+            <button class="ghost" id="btnBack">Retour</button>
+            <button class="primary" id="btnGo">${mode === "test" ? "Aller au test" : "Démarrer"}</button>
+          </div>
+          <p class="hint">
+            L'échauffement est proposé <b>avant</b> le test et avant la séance.
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <div class="h">
+            <div class="k">Focus</div>
+            <div class="v">Pull / Push / Tout</div>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="btns">
+            <button class="${focus==="pull"?"primary":""}" id="focusPull">Pull</button>
+            <button class="${focus==="push"?"primary":""}" id="focusPush">Push</button>
+            <button class="${focus==="all"?"primary":""}" id="focusAll">Tout</button>
+          </div>
+          <p class="hint">Le focus sert de présélection. Tu peux cocher/décocher.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <div class="h">
+            <div class="k">Exercices</div>
+            <div class="v">Sélection</div>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="list" id="exList">${exOptions}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <div class="h">
+            <div class="k">Échauffement</div>
+            <div class="v">Slots Pull / Push</div>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="field">
+            <label>Exercice Pull (échauffement haut du corps)</label>
+            <select id="slotPull">
+              ${WARMUP_SLOTS.pull.map(x => `<option ${x===pullChoice?"selected":""}>${escapeHTML(x)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field">
+            <label>Exercice Push (échauffement haut du corps)</label>
+            <select id="slotPush">
+              ${WARMUP_SLOTS.push.map(x => `<option ${x===pushChoice?"selected":""}>${escapeHTML(x)}</option>`).join("")}
+            </select>
+          </div>
+          <p class="hint">Ces choix sont mémorisés.</p>
+        </div>
+      </div>
+    </div>
+  `);
+
+  // Import functions dynamically to avoid circular dependencies
+  Promise.all([
+    import('./dashboard.js'),
+    import('./warmup.js'),
+    import('./test-flow.js'),
+    import('./workout.js')
+  ]).then(([{ renderDashboard }, { renderWarmupPrompt }, { renderTestFlow }, { startWorkout }]) => {
+    $("#btnBack").onclick = () => renderDashboard();
+
+    const setFocusAndDefaults = (newFocus) => {
+      const defaults = defaultSelectionForFocus(newFocus);
+      const list = $("#exList");
+      for (const cb of list.querySelectorAll("input[type=checkbox][data-ex]")) {
+        cb.checked = defaults.includes(cb.getAttribute("data-ex"));
+      }
+      PROGRESS.settings.last_session_setup = { focus: newFocus, selectedExercises: defaults };
+      saveProgress(PROGRESS);
+      renderSessionSetup({ mode });
+    };
+
+    $("#focusPull").onclick = () => setFocusAndDefaults("pull");
+    $("#focusPush").onclick = () => setFocusAndDefaults("push");
+    $("#focusAll").onclick  = () => setFocusAndDefaults("all");
+
+    $("#btnGo").onclick = () => {
+      const selectedExercises = [];
+      for (const cb of $("#exList").querySelectorAll("input[type=checkbox][data-ex]")) {
+        if (cb.checked) selectedExercises.push(cb.getAttribute("data-ex"));
+      }
+      if (!selectedExercises.length) { toast("Choisis au moins 1 exercice"); return; }
+
+      PROGRESS.settings.warmup_slot_choices = { pull: $("#slotPull").value, push: $("#slotPush").value };
+      const focusNow = PROGRESS.settings.last_session_setup?.focus || "all";
+      PROGRESS.settings.last_session_setup = { focus: focusNow, selectedExercises };
+      saveProgress(PROGRESS);
+
+      renderWarmupPrompt({
+        next: () => {
+          if (mode === "test") renderTestFlow({ mode: initialDone ? "retest" : "initial" });
+          else startWorkout({ resume: false, selectedExercises, setup: PROGRESS.settings.last_session_setup });
+        }
+      });
+    };
+  });
+}
