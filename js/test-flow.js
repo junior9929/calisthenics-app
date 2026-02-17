@@ -2,6 +2,7 @@
 
 import { $, render, escapeHTML, toast, vibrate, nowISO, safeGet, animateCard } from './utils.js';
 import { getProgress, setProgress, getProgram } from './state.js';
+import { saveProgress } from './storage.js';
 import { findPhase, findFundamental, findLevel, levelIndex, getTipsFor, renderTipsBox, exerciseGroup } from './program.js';
 import { formatValidate, meetsValidation } from './validation.js';
 import { renderEntryFields, readEntryFromFields } from './entry-fields.js';
@@ -163,7 +164,7 @@ function renderTestScreen(ctx) {
 
   $("#btnPass").onclick = () => {
     if (!entryMeetsLevel(level)) {
-      toast("L'entrée ne valide pas l'objectif. Utilise "Je bloque ici".");
+      toast("L'entrée ne valide pas l'objectif. Utilise « Je bloque ici ».");
       return;
     }
     const entry = readEntryFromFields(level.type);
@@ -207,6 +208,7 @@ async function nextExerciseOrFinish(ctx) {
   else PROGRESS.tests.retests.push(record);
 
   setProgress(PROGRESS);
+  saveProgress(PROGRESS);
   toast(ctx.mode === "initial" ? "Test initial enregistré ✅" : "Re-test enregistré ✅");
   
   const { renderDashboard } = await import('./dashboard.js');

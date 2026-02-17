@@ -2,7 +2,7 @@
 
 import { $, render, escapeHTML, toast, safeGet } from './utils.js';
 import { getProgress, setProgress, getProgram } from './state.js';
-import { LS_KEY, ensureProgressShape } from './storage.js';
+import { LS_KEY, ensureProgressShape, saveProgress } from './storage.js';
 import { findPhase, findFundamental, findLevel } from './program.js';
 import { bestRound1ForExercise } from './history.js';
 import { exportProgress, importProgressFromFile } from './export-import.js';
@@ -125,6 +125,7 @@ export async function renderDashboard() {
     PROGRESS.last_workout.nav = { round: 0, idx: 0 };
 
     setProgress(PROGRESS);
+    saveProgress(PROGRESS);
     toast("Séance abandonnée");
     renderDashboard();
   };
