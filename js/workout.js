@@ -327,8 +327,9 @@ export function renderWorkoutScreen(workout, nav) {
   const rest = (nav.idx === workout.circuit_plan.items.length - 1)
     ? workout.session_rules.rest_between_rounds_sec
     : workout.session_rules.rest_between_exercises_sec;
+  const nextItem = getNextCircuitItem(workout, nav);
 
-  runRestTimer(rest, () => goNext(workout, nav, { requireSaved: false }));
+  runRestTimer(rest, () => goNext(workout, nav, { requireSaved: false }), nextItem?.exercise_title || "");
   };
 
   // rest button (60s base, skippable) – you asked base 60 + swipe before end
@@ -340,8 +341,9 @@ export function renderWorkoutScreen(workout, nav) {
     const rest = (nav.idx === workout.circuit_plan.items.length - 1)
       ? workout.session_rules.rest_between_rounds_sec
       : workout.session_rules.rest_between_exercises_sec;
+    const nextItem = getNextCircuitItem(workout, nav);
 
-    runRestTimer(rest, () => goNext(workout, nav, { requireSaved: false }));
+    runRestTimer(rest, () => goNext(workout, nav, { requireSaved: false }), nextItem?.exercise_title || "");
   };
 }
 
@@ -362,6 +364,16 @@ export function goPrev(workout, nav) {
     return renderWorkoutScreen(workout, nav);
   }
   toast("Début de séance");
+}
+
+function getNextCircuitItem(workout, nav) {
+  if (nav.idx < workout.circuit_plan.items.length - 1) {
+    return workout.circuit_plan.items[nav.idx + 1];
+  }
+  if (nav.round < workout.session_rules.rounds - 1) {
+    return workout.circuit_plan.items[0];
+  }
+  return null;
 }
 
 export function goNext(workout, nav, { requireSaved }) {

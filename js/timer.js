@@ -22,6 +22,7 @@ export function ensureRestOverlay() {
       <div class="title">Repos</div>
       <div class="sub" id="restSub">Prépare le prochain exercice</div>
       <div class="big" id="restBig">60</div>
+      <div class="sub" id="restNext"></div>
       <div class="bar"><div id="restBar"></div></div>
       <div class="btns">
         <button class="ghost" id="restHide">Masquer</button>
@@ -44,15 +45,17 @@ export function ensureRestOverlay() {
   return o;
 }
 
-export function showRestOverlay(totalSec, remainingSec, label = "Repos") {
+export function showRestOverlay(totalSec, remainingSec, label = "Repos", nextExerciseTitle = "") {
   const o = ensureRestOverlay();
   o.style.display = "flex";
 
   const big = o.querySelector("#restBig");
   const sub = o.querySelector("#restSub");
+  const next = o.querySelector("#restNext");
   const bar = o.querySelector("#restBar");
 
   if (sub) sub.textContent = label;
+  if (next) next.textContent = nextExerciseTitle ? `Prochain exercice : ${nextExerciseTitle}` : "";
   if (big) big.textContent = String(Math.max(0, remainingSec));
 
   const pct = totalSec > 0 ? Math.round(((totalSec - remainingSec) / totalSec) * 100) : 0;
@@ -64,7 +67,7 @@ export function hideRestOverlay() {
   if (o) o.style.display = "none";
 }
 
-export function runRestTimer(seconds, onDone) {
+export function runRestTimer(seconds, onDone, nextExerciseTitle = "") {
   const el = $("#restHint");
   if (!el) return onDone?.();
   ensureAudio();
@@ -81,7 +84,7 @@ export function runRestTimer(seconds, onDone) {
 
   // première affichage
   el.textContent = `Repos : ${t}s`;
-  showRestOverlay(total, t, "Récupère • Tu peux passer quand tu veux");
+  showRestOverlay(total, t, "Récupère • Tu peux passer quand tu veux", nextExerciseTitle);
 
   restInterval = setInterval(() => {
     t--;
@@ -104,7 +107,7 @@ export function runRestTimer(seconds, onDone) {
     }
 
     el.textContent = `Repos : ${t}s`;
-    showRestOverlay(total, t, "Récupère • Tu peux passer quand tu veux");
+    showRestOverlay(total, t, "Récupère • Tu peux passer quand tu veux", nextExerciseTitle);
   }, 1000);
 }
 
