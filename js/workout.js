@@ -12,6 +12,12 @@ import { runRestTimer, stopRest, isRestRunning } from './timer.js';
 import { wireQuickControlsForCurrentScreen as wireQuickControls } from './entry-fields.js';
 import { saveProgress } from './storage.js';
 
+function clampRounds(value, fallback) {
+  const n = Number.parseInt(value, 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(4, Math.max(2, n));
+}
+
 export function persistWorkout(workout) {
   const PROGRESS = getProgress();
   PROGRESS.last_workout = deepClone(workout);
@@ -37,18 +43,21 @@ export async function startWorkout({ resume, selectedExercises, setup }) {
     toast("Séance reprise");
   } else {
     const plan = getCircuitForPhase1(PROGRAM, PROGRESS, selectedExercises);
+    const fallbackRounds = phase?.session_rules?.rounds || 4;
+    const setupRounds = setup?.rounds ?? PROGRESS.settings.last_session_setup?.rounds ?? fallbackRounds;
+    const chosenRounds = clampRounds(setupRounds, fallbackRounds);
     workout = {
       workout_id: `w-${Date.now()}`,
       performed_at: nowISO(),
       phase_id: phase.id,
       warmup_ids: [],
       session_rules: {
-        rounds: phase.session_rules.rounds,
+        rounds: chosenRounds,
         rest_between_exercises_sec: PROGRESS.settings.rest_between_exercises_sec || 60,
         rest_between_rounds_sec: PROGRESS.settings.rest_between_rounds_sec || 120
       },
       circuit_plan: plan,
-      rounds: Array.from({ length: phase.session_rules.rounds }, () => ({ entries: [] })),
+      rounds: Array.from({ length: chosenRounds }, () => ({ entries: [] })),
       completed: false,
       paused: false,
       setup: setup || PROGRESS.settings.last_session_setup || null,
@@ -111,7 +120,6 @@ export function renderWorkoutScreen(workout, nav) {
   const already = roundObj.entries.find(x => x.item_id === item.item_id) || null;
 
   const best = bestRound1ForExercise(item.exercise_id);
-  const bestLine = best ? `Meilleur tour 1: ${best.val}${best.measure_type === "hold_sec" ? "s" : ""}` : "Meilleur tour 1: —";
 
   const group = exerciseGroup(item.exercise_id);
   const tips = getTipsFor(PROGRAM, workout.phase_id, item.exercise_id, item.level_id);
@@ -327,9 +335,8 @@ export function renderWorkoutScreen(workout, nav) {
   const rest = (nav.idx === workout.circuit_plan.items.length - 1)
     ? workout.session_rules.rest_between_rounds_sec
     : workout.session_rules.rest_between_exercises_sec;
-  const nextItem = getNextCircuitItem(workout, nav);
-
-  runRestTimer(rest, () => goNext(workout, nav, { requireSaved: false }), nextItem?.exercise_title || "");
+  const nextLabel = getNextItemDisplayLabel(workout, nav);
+  runRestTimer(rest, () => goNext(workout, nav, { requireSaved: false }), nextLabel);
   };
 
   // rest button (60s base, skippable) – you asked base 60 + swipe before end
@@ -341,9 +348,8 @@ export function renderWorkoutScreen(workout, nav) {
     const rest = (nav.idx === workout.circuit_plan.items.length - 1)
       ? workout.session_rules.rest_between_rounds_sec
       : workout.session_rules.rest_between_exercises_sec;
-    const nextItem = getNextCircuitItem(workout, nav);
-
-    runRestTimer(rest, () => goNext(workout, nav, { requireSaved: false }), nextItem?.exercise_title || "");
+    const nextLabel = getNextItemDisplayLabel(workout, nav);
+    runRestTimer(rest, () => goNext(workout, nav, { requireSaved: false }), nextLabel);
   };
 }
 
@@ -374,6 +380,12 @@ function getNextCircuitItem(workout, nav) {
     return workout.circuit_plan.items[0];
   }
   return null;
+}
+
+function getNextItemDisplayLabel(workout, nav) {
+  const next = getNextCircuitItem(workout, nav);
+  if (!next) return "";
+  return `${next.exercise_title} — ${next.level_title}`;
 }
 
 export function goNext(workout, nav, { requireSaved }) {
