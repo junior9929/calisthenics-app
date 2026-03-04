@@ -1,15 +1,20 @@
 /* ---------- Session Setup Screen ---------- */
 
-import { $, render, escapeHTML, escapeAttr, toast } from './utils.js';
+import { $, render, escapeHTML, escapeAttr, toast, safeGet } from './utils.js';
 import { getProgress, getProgram } from './state.js';
-import { saveProgress, WARMUP_SLOTS } from './storage.js';
+import { saveProgress } from './storage.js';
 import { findPhase, findFundamental } from './program.js';
-import { safeGet } from './utils.js';
 
 export function defaultSelectionForFocus(focus) {
   if (focus === "pull") return ["pullups", "pistols", "plank", "lsit"];
   if (focus === "push") return ["pushups", "pistols", "plank", "dips"];
   return ["pullups","pushups","pistols","plank","dips","lsit"];
+}
+
+function clampRounds(value) {
+  const n = Number.parseInt(value, 10);
+  if (!Number.isFinite(n)) return 4;
+  return Math.min(4, Math.max(2, n));
 }
 
 export async function renderSessionSetup({ mode }) {
@@ -21,6 +26,9 @@ export async function renderSessionSetup({ mode }) {
   const last = PROGRESS.settings.last_session_setup;
   const focus = last?.focus || "all";
   const selected = new Set(last?.selectedExercises || defaultSelectionForFocus(focus));
+  const rounds = clampRounds(last?.rounds ?? 4);
+  const warmupUpper = (typeof last?.warmup_upper === "boolean") ? last.warmup_upper : true;
+  const warmupLower = (typeof last?.warmup_lower === "boolean") ? last.warmup_lower : selected.has("pistols");
 
   const exOptions = (phase.fundamentals_order || []).map(exId => {
     const f = findFundamental(phase, exId);
@@ -35,9 +43,6 @@ export async function renderSessionSetup({ mode }) {
       </label>
     `;
   }).join("");
-
-  const pullChoice = PROGRESS.settings.warmup_slot_choices?.pull || WARMUP_SLOTS.pull[0];
-  const pushChoice = PROGRESS.settings.warmup_slot_choices?.push || WARMUP_SLOTS.push[0];
 
   render(`
     <div class="grid">
@@ -92,24 +97,36 @@ export async function renderSessionSetup({ mode }) {
       <div class="card">
         <div class="hd">
           <div class="h">
-            <div class="k">Échauffement</div>
-            <div class="v">Slots Pull / Push</div>
+            <div class="k">Paramètres de séance</div>
+            <div class="v">Séries + échauffement</div>
           </div>
         </div>
         <div class="bd">
           <div class="field">
-            <label>Exercice Pull (échauffement haut du corps)</label>
-            <select id="slotPull">
-              ${WARMUP_SLOTS.pull.map(x => `<option ${x===pullChoice?"selected":""}>${escapeHTML(x)}</option>`).join("")}
+            <label>Séries totales</label>
+            <select id="roundsSelect">
+              <option value="2" ${rounds === 2 ? "selected" : ""}>2 séries</option>
+              <option value="3" ${rounds === 3 ? "selected" : ""}>3 séries</option>
+              <option value="4" ${rounds === 4 ? "selected" : ""}>4 séries</option>
             </select>
           </div>
-          <div class="field">
-            <label>Exercice Push (échauffement haut du corps)</label>
-            <select id="slotPush">
-              ${WARMUP_SLOTS.push.map(x => `<option ${x===pushChoice?"selected":""}>${escapeHTML(x)}</option>`).join("")}
-            </select>
+          <div class="list" style="margin-top:10px;">
+            <label class="item" style="cursor:pointer;">
+              <div class="left">
+                <div class="name">Échauffement bras</div>
+                <div class="tiny muted">Routine haut du corps</div>
+              </div>
+              <input type="checkbox" id="warmupUpper" ${warmupUpper ? "checked" : ""} />
+            </label>
+            <label class="item" style="cursor:pointer;">
+              <div class="left">
+                <div class="name">Échauffement jambes</div>
+                <div class="tiny muted">Routine bas du corps</div>
+              </div>
+              <input type="checkbox" id="warmupLower" ${warmupLower ? "checked" : ""} />
+            </label>
           </div>
-          <p class="hint">Ces choix sont mémorisés.</p>
+          <p class="hint">Coche au moins une zone d'échauffement.</p>
         </div>
       </div>
     </div>
@@ -147,7 +164,16 @@ export async function renderSessionSetup({ mode }) {
       for (const cb of list.querySelectorAll("input[type=checkbox][data-ex]")) {
         cb.checked = defaults.includes(cb.getAttribute("data-ex"));
       }
-      PROGRESS.settings.last_session_setup = { focus: newFocus, selectedExercises: defaults };
+      const currentRounds = clampRounds($("#roundsSelect")?.value ?? rounds);
+      const currentWarmupUpper = !!$("#warmupUpper")?.checked;
+      const currentWarmupLower = !!$("#warmupLower")?.checked;
+      PROGRESS.settings.last_session_setup = {
+        focus: newFocus,
+        selectedExercises: defaults,
+        rounds: currentRounds,
+        warmup_upper: currentWarmupUpper,
+        warmup_lower: currentWarmupLower
+      };
       saveProgress(PROGRESS);
       renderSessionSetup({ mode });
     };
@@ -163,10 +189,22 @@ export async function renderSessionSetup({ mode }) {
           if (cb.checked) selectedExercises.push(cb.getAttribute("data-ex"));
         }
         if (!selectedExercises.length) { toast("Choisis au moins 1 exercice"); return; }
+        const chosenRounds = clampRounds($("#roundsSelect")?.value ?? rounds);
+        const chosenWarmupUpper = !!$("#warmupUpper")?.checked;
+        const chosenWarmupLower = !!$("#warmupLower")?.checked;
+        if (!chosenWarmupUpper && !chosenWarmupLower) {
+          toast("Choisis au moins une zone d'échauffement");
+          return;
+        }
 
-        PROGRESS.settings.warmup_slot_choices = { pull: $("#slotPull").value, push: $("#slotPush").value };
         const focusNow = PROGRESS.settings.last_session_setup?.focus || "all";
-        PROGRESS.settings.last_session_setup = { focus: focusNow, selectedExercises };
+        PROGRESS.settings.last_session_setup = {
+          focus: focusNow,
+          selectedExercises,
+          rounds: chosenRounds,
+          warmup_upper: chosenWarmupUpper,
+          warmup_lower: chosenWarmupLower
+        };
         saveProgress(PROGRESS);
 
         renderWarmupPrompt({

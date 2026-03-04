@@ -3,7 +3,6 @@
 import { $, render, escapeHTML, fmtTime, animateCard, toast, vibrate } from './utils.js';
 import { getProgress, getProgram } from './state.js';
 import { getWarmup } from './program.js';
-import { WARMUP_SLOTS } from './storage.js';
 import { attachSwipe } from './swipe.js';
 import { restCountdownBeep, ensureAudio } from './audio.js';
 
@@ -34,11 +33,10 @@ export function renderWarmupPrompt({ next }) {
   $("#btnWarm").onclick = () => {
     const PROGRESS = getProgress();
     const setup = PROGRESS.settings.last_session_setup;
-    const selected = new Set(setup?.selectedExercises || []);
     const warmups = [];
-
-    warmups.push(PROGRESS.settings.warmup_default_upper);
-    if (selected.has("pistols")) warmups.push(PROGRESS.settings.warmup_default_lower);
+    if (setup?.warmup_upper ?? true) warmups.push(PROGRESS.settings.warmup_default_upper);
+    if (setup?.warmup_lower ?? false) warmups.push(PROGRESS.settings.warmup_default_lower);
+    if (!warmups.length) return next?.();
 
     runWarmups(warmups, () => next?.());
   };
@@ -69,8 +67,11 @@ export function runWarmups(warmupIds, onDone) {
     if (!cur) return onDone?.();
 
     const s = cur.step;
-    const slotPull = PROGRESS.settings.warmup_slot_choices?.pull || WARMUP_SLOTS.pull[0];
-    const slotPush = PROGRESS.settings.warmup_slot_choices?.push || WARMUP_SLOTS.push[0];
+    const selectedExercises = new Set(PROGRESS.settings.last_session_setup?.selectedExercises || []);
+    const autoWarmupPull = selectedExercises.has("pullups") ? "Tractions australiennes" : "Dead hang actif";
+    const autoWarmupPush = (selectedExercises.has("pushups") || selectedExercises.has("dips"))
+      ? "Pompes inclinées"
+      : "Pompes genoux";
 
     let line = "";
     let big = "";
@@ -86,7 +87,7 @@ export function runWarmups(warmupIds, onDone) {
       big = fmtTime(warmupTimer.t);
     }
     else if (s.type === "exercise_slot") {
-      const chosen = s.slot === "pull" ? slotPull : slotPush;
+      const chosen = s.slot === "pull" ? autoWarmupPull : autoWarmupPush;
       line = `${chosen} — ${s.reps_min}-${s.reps_max} reps`;
       big = chosen;
     }

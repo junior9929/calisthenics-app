@@ -133,3 +133,27 @@ Ce projet est un outil personnel d'entraînement. Les suggestions d'amélioratio
 ## 📄 Licence
 
 Projet personnel à but éducatif et d'entraînement.
+
+## 🔁 Pousser les changements vers GitHub
+
+Si tu vois l'erreur `fatal: not a git repository (or any of the parent directories): .git`, cela veut dire que tu n'es pas dans le dossier du projet.
+
+Utilise ces commandes dans ton terminal :
+
+```bash
+# 1) Aller dans le dossier du projet cloné
+cd /chemin/vers/calisthenics-app
+
+# 2) Vérifier que Git détecte bien le repo
+git status
+
+# 3) Vérifier la branche en cours (ex: work)
+git branch --show-current
+
+# 4) Pousser vers GitHub
+git push -u origin work
+```
+
+Notes utiles :
+- Si le dossier n'existe pas encore en local, clone d'abord le repo puis `cd` dedans.
+- Si ta branche n'est pas `work`, remplace `work` par le nom affiché par `git branch --show-current`.
